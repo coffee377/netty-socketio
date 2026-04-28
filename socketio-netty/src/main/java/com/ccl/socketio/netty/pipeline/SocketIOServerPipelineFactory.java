@@ -57,7 +57,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                0, TimeUnit.SECONDS));
 
         // --- Handshake ---
-        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler());
+        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536));
 
         // --- Engine.IO heartbeat ---
         pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
@@ -66,7 +66,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler());
 
         // --- Engine.IO codec: ByteBuf → EnginePacket ---
-        pipeline.addLast("engineCodec", new EngineIOCodec());
+        pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
 
 //
 //        // --- Engine.IO session management ---
