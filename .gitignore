@@ -16,5 +16,7 @@
 build
 .gradle
 .claude
+bin
 logs
 .opencode
+!.opencode/plans
