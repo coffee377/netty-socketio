@@ -10,22 +10,34 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class ClientContext {
 
-    /** 会话 ID（唯一标识客户端） */
+    /**
+     * 会话 ID（唯一标识客户端）
+     */
     private final String sessionId;
 
-    /** 当前传输方式（polling 或 websocket） */
+    /**
+     * 当前传输方式（polling 或 websocket）
+     */
     private TransportType transportType;
 
-    /** 连接状态（true 表示已连接） */
+    /**
+     * 连接状态（true 表示已连接）
+     */
     private final AtomicBoolean connected;
 
-    /** 最后一次心跳时间戳（毫秒） */
+    /**
+     * 最后一次心跳时间戳（毫秒）
+     */
     private long lastPingTime;
 
-    /** 客户端远程地址 */
+    /**
+     * 客户端远程地址
+     */
     private String remoteAddress;
 
-    /** 自定义附加数据（用于存储认证信息等） */
+    /**
+     * 自定义附加数据（用于存储认证信息等）
+     */
     private Object attachment;
 
     /**
