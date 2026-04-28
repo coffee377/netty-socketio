@@ -16,29 +16,45 @@ import java.util.concurrent.TimeUnit;
  */
 public class SessionManager {
 
-    /** 单例实例 */
+    /**
+     * 单例实例
+     */
     private static final SessionManager INSTANCE = new SessionManager();
 
-    /** 会话存储：sessionId -> 客户端上下文 */
+    /**
+     * 会话存储：sessionId -> 客户端上下文
+     */
     private final ConcurrentHashMap<String, ClientContext> sessions = new ConcurrentHashMap<>();
 
-    /** 超时任务映射：sessionId -> 定时任务 */
+    /**
+     * 超时任务映射：sessionId -> 定时任务
+     */
     private final ConcurrentHashMap<String, ScheduledFuture<?>> sessionTimeoutTasks = new ConcurrentHashMap<>();
 
-    /** 共享的调度线程池，避免每次创建超时任务时新建线程池 */
+    /**
+     * 共享的调度线程池，避免每次创建超时任务时新建线程池
+     */
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    /** 心跳超时时间（毫秒），客户端在此时间内未响应则断开 */
+    /**
+     * 心跳超时时间（毫秒），客户端在此时间内未响应则断开
+     */
     private long pingTimeout = 25000;
 
-    /** 心跳间隔（毫秒），服务端发送 ping 的时间间隔 */
+    /**
+     * 心跳间隔（毫秒），服务端发送 ping 的时间间隔
+     */
     private long pingInterval = 30000;
 
-    /** 私有构造函数，防止外部实例化 */
+    /**
+     * 私有构造函数，防止外部实例化
+     */
     private SessionManager() {
     }
 
-    /** 获取单例实例 */
+    /**
+     * 获取单例实例
+     */
     public static SessionManager getInstance() {
         return INSTANCE;
     }
@@ -122,22 +138,34 @@ public class SessionManager {
         }
     }
 
-    /** 设置心跳超时时间 */
+    /**
+     * 设置心跳超时时间
+     * @param pingTimeout 心跳超时时间（毫秒）
+     */
     public void setPingTimeout(long pingTimeout) {
         this.pingTimeout = pingTimeout;
     }
 
-    /** 设置心跳间隔 */
+    /**
+     * 设置心跳间隔
+     * @param pingInterval 心跳间隔（毫秒）
+     */
     public void setPingInterval(long pingInterval) {
         this.pingInterval = pingInterval;
     }
 
-    /** 获取心跳超时时间 */
+    /**
+     * 获取心跳超时时间
+     * @return 心跳超时时间（毫秒）
+     */
     public long getPingTimeout() {
         return pingTimeout;
     }
 
-    /** 获取心跳间隔 */
+    /**
+     * 获取心跳间隔
+     * @return 心跳间隔（毫秒）
+     */
     public long getPingInterval() {
         return pingInterval;
     }
