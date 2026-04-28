@@ -31,16 +31,22 @@ public class ParserV4 implements Parser {
      */
     public static final byte V4_RECORD_SEPARATOR = 0x1E;
 
-    /** 单例实例 */
+    /**
+     * 单例实例
+     */
     private static final ParserV4 INSTANCE = new ParserV4();
 
-    /** 获取单例实例
-     * @return ParserV4 实例 */
+    /**
+     * 获取单例实例
+     * @return ParserV4 实例
+     */
     public static ParserV4 getInstance() {
         return INSTANCE;
     }
 
-    /** 默认构造函数 */
+    /**
+     * 默认构造函数
+     */
     public ParserV4() {
     }
 
