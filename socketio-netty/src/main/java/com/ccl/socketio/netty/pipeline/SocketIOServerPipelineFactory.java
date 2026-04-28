@@ -22,6 +22,8 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
     private final Consumer<SocketIOEventRouterHandler> eventHandlerRegister;
     private final ChannelHandler businessHandler;
     private final ChannelHandler globalExceptionHandler;
+    private final boolean enableCors;
+    private final String corsOrigin;
 
     public SocketIOServerPipelineFactory(
             NamespaceManager namespaceManager,
@@ -32,6 +34,21 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
             Consumer<SocketIOEventRouterHandler> eventHandlerRegister,
             ChannelHandler businessHandler,
             ChannelHandler globalExceptionHandler) {
+        this(namespaceManager, eventRouter, pingInterval, pingTimeout, transports,
+                eventHandlerRegister, businessHandler, globalExceptionHandler, true, "*");
+    }
+
+    public SocketIOServerPipelineFactory(
+            NamespaceManager namespaceManager,
+            EventRouter eventRouter,
+            long pingInterval,
+            long pingTimeout,
+            List<String> transports,
+            Consumer<SocketIOEventRouterHandler> eventHandlerRegister,
+            ChannelHandler businessHandler,
+            ChannelHandler globalExceptionHandler,
+            boolean enableCors,
+            String corsOrigin) {
         this.namespaceManager = namespaceManager;
         this.eventRouter = eventRouter;
         this.pingInterval = pingInterval;
@@ -40,6 +57,8 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         this.eventHandlerRegister = eventHandlerRegister;
         this.businessHandler = businessHandler;
         this.globalExceptionHandler = globalExceptionHandler;
+        this.enableCors = enableCors;
+        this.corsOrigin = corsOrigin;
     }
 
     @Override
@@ -57,7 +76,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                0, TimeUnit.SECONDS));
 
         // --- Handshake ---
-        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536));
+        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536, enableCors, corsOrigin));
 
         // --- Engine.IO heartbeat ---
         pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));

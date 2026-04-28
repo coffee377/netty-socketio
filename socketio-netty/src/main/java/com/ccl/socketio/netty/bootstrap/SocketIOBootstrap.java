@@ -20,6 +20,8 @@ public class SocketIOBootstrap {
     private Consumer<SocketIOEventRouterHandler> eventHandlerRegister;
     private ChannelHandler businessHandler;
     private ChannelHandler globalExceptionHandler;
+    private boolean enableCors = true;
+    private String corsOrigin = "*";
 
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
@@ -56,6 +58,16 @@ public class SocketIOBootstrap {
         return this;
     }
 
+    public SocketIOBootstrap setEnableCors(boolean enableCors) {
+        this.enableCors = enableCors;
+        return this;
+    }
+
+    public SocketIOBootstrap setCorsOrigin(String corsOrigin) {
+        this.corsOrigin = corsOrigin;
+        return this;
+    }
+
     public void start() throws InterruptedException {
         IoHandlerFactory handler = NioIoHandler.newFactory();
         bossGroup = new MultiThreadIoEventLoopGroup(0, handler);
@@ -75,7 +87,9 @@ public class SocketIOBootstrap {
                         transports,
                         eventHandlerRegister,
                         businessHandler,
-                        globalExceptionHandler))
+                        globalExceptionHandler,
+                        enableCors,
+                        corsOrigin))
                 .option(ChannelOption.SO_BACKLOG, 128)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
                 .childOption(ChannelOption.TCP_NODELAY, true);

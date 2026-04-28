@@ -1,27 +1,25 @@
 package com.ccl.engineio.netty.handler;
 
 import com.ccl.engineio.core.entity.OpenData;
+import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.core.session.SessionManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.*;
 import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -40,11 +38,21 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
     private final String connectPath;
     private final SessionManager sessionManager;
     private final int maxFramePayloadLength;
+    private final boolean enableCors;
+    private final String corsOrigin;
+    private final ParserV4 parser;
 
     public EngineIOHandshakeHandler(String connectPath, int maxFramePayloadLength) {
+        this(connectPath, maxFramePayloadLength, true, "*");
+    }
+
+    public EngineIOHandshakeHandler(String connectPath, int maxFramePayloadLength, boolean enableCors, String corsOrigin) {
         this.connectPath = connectPath;
         this.sessionManager = SessionManager.getInstance();
         this.maxFramePayloadLength = maxFramePayloadLength;
+        this.enableCors = enableCors;
+        this.corsOrigin = corsOrigin;
+        this.parser = ParserV4.getInstance();
     }
 
     /**
@@ -57,8 +65,8 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        QueryStringDecoder queryStringDecoder = new QueryStringDecoder(fullHttpRequest.uri());
-        String path = queryStringDecoder.path();
+        QueryStringDecoder queryDecoder = new QueryStringDecoder(fullHttpRequest.uri());
+        String path = queryDecoder.path();
 
         if (!path.startsWith(connectPath)) {
             if (log.isDebugEnabled()) {
@@ -68,7 +76,7 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        Map<String, List<String>> params = queryStringDecoder.parameters();
+        Map<String, List<String>> params = queryDecoder.parameters();
         List<String> sidValues = params.get("sid");
         List<String> transportValues = params.get("transport");
 
@@ -81,7 +89,7 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             ctx.channel().attr(ChannelAttributes.SESSION_ID).set(sidValues.get(0));
         }
 
-        ctx.channel().attr(CONNECTED_HTTP_REQUEST).set(fullHttpRequest);
+//        ctx.channel().attr(CONNECTED_HTTP_REQUEST).set(fullHttpRequest);
         ctx.fireChannelRead(msg);
     }
 
@@ -126,11 +134,12 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
 
         OpenData openData = new OpenData();
         openData.setSid(sessionId);
+        openData.setUpgrades(Collections.singletonList(TransportType.WEBSOCKET.getName()));
         openData.setPingInterval((int) sessionManager.getPingInterval());
         openData.setPingTimeout((int) sessionManager.getPingTimeout());
         openData.setMaxPayload(maxFramePayloadLength);
 
-        EngineIOPacket<String> packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN);
+        EngineIOPacket<String> packet;
         try {
             String json = OBJECT_MAPPER.writeValueAsString(openData);
             packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
@@ -140,21 +149,26 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             return false;
         }
 
-        String encodedPacket = ByteBufUtil.hexDump(Unpooled.wrappedBuffer(
-                packet.getType().getByte(),
-                packet.getData().getBytes(StandardCharsets.UTF_8)));
-        byte[] packetBytes = new byte[1];
-        packetBytes[0] = packet.getType().getByte();
-        byte[] payloadBytes = packet.getData().getBytes(StandardCharsets.UTF_8);
-        byte[] responseBytes = new byte[packetBytes.length + payloadBytes.length];
-        System.arraycopy(packetBytes, 0, responseBytes, 0, packetBytes.length);
-        System.arraycopy(payloadBytes, 0, responseBytes, packetBytes.length, payloadBytes.length);
+        byte[] bytes = parser.encodePacket(packet, true);
+        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
+        log.info("{}",byteBuf.toString(StandardCharsets.UTF_8));
         FullHttpResponse response = new DefaultFullHttpResponse(
-                io.netty.handler.codec.http.HttpVersion.HTTP_1_1,
+                HttpVersion.HTTP_1_1,
                 HttpResponseStatus.OK,
-                Unpooled.wrappedBuffer(responseBytes));
-        response.headers().set(io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
-        response.headers().set(io.netty.handler.codec.http.HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+                byteBuf);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
+        response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+
+        // 添加 CORS 响应头
+        if (enableCors) {
+            if (corsOrigin != null && !corsOrigin.isEmpty()) {
+                response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, corsOrigin);
+                if (!"*".equals(corsOrigin)) {
+                    response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE);
+                }
+            }
+        }
+
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         return true;
     }
@@ -168,6 +182,7 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
         }
         FullHttpResponse response = new DefaultFullHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1, status);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        req.release();
     }
 
     /**

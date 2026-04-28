@@ -22,7 +22,9 @@ public class SocketIOServer {
     private SocketIOServer(ServerConfig config) {
         this.config = config;
         ServerOptions options = config.getOptions();
-        this.bootstrap = new SocketIOBootstrap(4000);
+        this.bootstrap = new SocketIOBootstrap(options.getPort())
+                .setEnableCors(options.isAllowCors())
+                .setCorsOrigin(options.getCorsOrigin());
     }
 
     public void start() {
