@@ -1,17 +1,19 @@
 package com.ccl.engineio.netty.pipeline;
 
 import com.ccl.engineio.netty.handler.*;
+import com.ccl.engineio.netty.transport.PollingHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
-import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 
 /**
  * Pipeline 工厂
  * 负责初始化 Netty Channel Pipeline，按照协议栈顺序添加各层处理器：
- * HTTP Codec -> Engine.IO 握手 -> WebSocket 升级 -> 编解码 -> 心跳 -> Session 管理
+ * HTTP Codec -> Engine.IO 握手 -> WebSocket 升级/Polling -> 编解码 -> 心跳 -> Session 管理
+ * <p>
+ * WebSocketServerProtocolHandler 会在握手成功且 transport=websocket 时动态添加，不在初始 pipeline 中。
  */
 public class PipelineFactory extends ChannelInitializer<Channel> {
 
@@ -41,14 +43,14 @@ public class PipelineFactory extends ChannelInitializer<Channel> {
         // --- Engine.IO 握手 + Session 创建 ---
         pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler(connectPath, maxFramePayloadLength));
 
-        // --- Engine.IO 编解码 ---
-        pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
-
-        // --- WebSocket 升级 ---
+        // --- Engine.IO WebSocket 升级 ---
         pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler());
 
-        // --- Engine.IO WebSocket 协议处理 ---
-        pipeline.addLast("wsProtocol", new WebSocketServerProtocolHandler(null, true, maxFramePayloadLength));
+        // --- Engine.IO Polling ---
+        pipeline.addLast("polling", new PollingHandler());
+
+        // --- Engine.IO 编解码 ---
+        pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
 
         // --- Engine.IO 心跳 ---
         pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));

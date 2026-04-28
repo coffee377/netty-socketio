@@ -13,6 +13,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.AttributeKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +85,13 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             if (!handleHandshake(ctx, fullHttpRequest, params, transportValues)) {
                 fullHttpRequest.release();
                 return;
+            }
+
+            boolean isWebSocket = transportValues != null && !transportValues.isEmpty()
+                    && transportValues.get(0).equalsIgnoreCase("websocket");
+
+            if (isWebSocket) {
+                addWebSocketProtocolHandler(ctx);
             }
         } else {
             ctx.channel().attr(ChannelAttributes.SESSION_ID).set(sidValues.get(0));
@@ -171,6 +179,21 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
 
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         return true;
+    }
+
+    /**
+     * 动态添加 WebSocket 协议处理器
+     * <p>
+     * 当 transport=websocket 时，需要向 pipeline 中插入 WebSocketServerProtocolHandler，
+     * 使其在 handshake handler 之后、codec 之前工作。
+     * </p>
+     */
+    private void addWebSocketProtocolHandler(ChannelHandlerContext ctx) {
+        if (log.isDebugEnabled()) {
+            log.debug("Adding WebSocketServerProtocolHandler to pipeline for: {}", ctx.channel().remoteAddress());
+        }
+        ctx.pipeline().addBefore(ctx.name(), "wsProtocol",
+                new WebSocketServerProtocolHandler(null, true, maxFramePayloadLength));
     }
 
     /**
