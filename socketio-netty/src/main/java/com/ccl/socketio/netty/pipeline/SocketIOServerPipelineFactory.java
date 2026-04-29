@@ -94,11 +94,11 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         // --- Engine.IO heartbeat ---
         // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
 
+        // --- Engine.IO Polling ---
+        pipeline.addLast("polling", new PollingHandler());
+
         // --- WebSocket upgrade ---
         pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler());
-
-        // --- Engine.IO Polling ---
-//        pipeline.addLast("polling", new PollingHandler());
 
         // --- Engine.IO codec: ByteBuf → EnginePacket ---
         pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
