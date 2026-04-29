@@ -9,6 +9,17 @@ import io.netty.channel.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Socket.IO 命名空间处理器
+ *
+ * <p>处理 Socket.IO 协议消息，根据包类型分发至对应的处理方法：
+ * <ul>
+ *   <li>CONNECT：客户端连接命名空间，创建 SocketIOClient 并触发 connect 事件</li>
+ *   <li>DISCONNECT：客户端断开连接，触发 disconnect 事件</li>
+ *   <li>EVENT：业务事件，触发命名空间上注册的事件监听器</li>
+ *   <li>ACK：消息确认，触发对应的回调</li>
+ * </ul>
+ */
 public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<SocketPacket> {
 
     private final NamespaceManager namespaceManager;
@@ -36,12 +47,20 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
         }
 
         switch (packet.getType()) {
-            case CONNECT -> handleConnect(ctx, namespace, sessionId);
-            case DISCONNECT -> handleDisconnect(ctx, namespace, sessionId);
-            case EVENT -> handleEvent(ctx, namespace, sessionId, packet);
-            case ACK -> handleAck(ctx, namespace, sessionId, packet);
-            default -> {
-            }
+            case CONNECT:
+                handleConnect(ctx, namespace, sessionId);
+                break;
+            case DISCONNECT:
+                handleDisconnect(ctx, namespace, sessionId);
+                break;
+            case EVENT:
+                handleEvent(ctx, namespace, sessionId, packet);
+                break;
+            case ACK:
+                handleAck(ctx, namespace, sessionId, packet);
+                break;
+            default:
+                break;
         }
     }
 

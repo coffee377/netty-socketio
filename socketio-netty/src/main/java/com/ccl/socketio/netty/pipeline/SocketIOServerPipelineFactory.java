@@ -1,6 +1,7 @@
 package com.ccl.socketio.netty.pipeline;
 
 import com.ccl.engineio.netty.handler.*;
+import com.ccl.engineio.netty.transport.PollingHandler;
 import com.ccl.socketio.core.event.EventRouter;
 import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
@@ -12,6 +13,18 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+/**
+ * Socket.IO 服务端 ChannelPipeline 工厂
+ *
+ * <p>负责构建 Netty Channel 的处理流水线，组织各类 Handler 的执行顺序。
+ * 流水线从上到下分为以下几个阶段：
+ * <ul>
+ *   <li>HTTP 编解码：HttpServerCodec、HttpObjectAggregator</li>
+ *   <li>Engine.IO 握手：EngineIOHandshakeHandler 处理连接建立</li>
+ *   <li>WebSocket 升级：EngineIOUpgradeHandler 处理协议升级</li>
+ *   <li>Engine.IO 编解码：EngineIOCodec 处理数据帧与协议包的转换</li>
+ * </ul>
+ */
 public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 
     private final NamespaceManager namespaceManager;
@@ -79,18 +92,20 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536, enableCors, corsOrigin));
 
         // --- Engine.IO heartbeat ---
-        pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
+        // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
 
         // --- WebSocket upgrade ---
         pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler());
 
+        // --- Engine.IO Polling ---
+//        pipeline.addLast("polling", new PollingHandler());
+
         // --- Engine.IO codec: ByteBuf → EnginePacket ---
         pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
 
-//
-//        // --- Engine.IO session management ---
+        // --- Engine.IO session management ---
 //        pipeline.addLast("engineSession", new EngineIOSessionHandler());
-//
+
 //        // --- Socket.IO codec: EnginePacket → SocketPacket ---
 //        pipeline.addLast("socketIOCodec", new SocketIOCodecHandler());
 //
