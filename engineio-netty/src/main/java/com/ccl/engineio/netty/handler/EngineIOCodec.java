@@ -40,6 +40,7 @@ public class EngineIOCodec extends ChannelDuplexHandler {
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        log.info("EngineIOCodec read");
         byte[] bytes;
         if (msg instanceof ByteBuf) {
             ByteBuf byteBuf = (ByteBuf) msg;
