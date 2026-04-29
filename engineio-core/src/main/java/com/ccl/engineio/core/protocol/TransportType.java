@@ -1,5 +1,7 @@
 package com.ccl.engineio.core.protocol;
 
+import java.util.Arrays;
+
 /**
  * Engine.IO 传输类型枚举
  *
@@ -28,19 +30,13 @@ public enum TransportType {
      */
     private final String description;
 
-    /**
-     * 构造函数
-     *
-     * @param name        传输类型名称
-     * @param description 传输类型描述
-     */
     TransportType(String name, String description) {
         this.name = name;
         this.description = description;
     }
 
     /**
-     * 获取传输类型名称
+     * 获取传输类型名称。
      *
      * @return 传输类型名称（用于 URL 参数）
      */
@@ -49,12 +45,23 @@ public enum TransportType {
     }
 
     /**
-     * 获取传输类型描述
+     * 获取传输类型描述。
      *
      * @return 传输类型的功能说明
      */
     public String getDescription() {
         return description;
+    }
+
+    /**
+     * 根据传输类型名称查找对应的枚举值。
+     *
+     * @param name 传输类型名称（不区分大小写）
+     * @return 对应的枚举值，未找到时返回 null
+     */
+    public static TransportType of(String name) {
+        return Arrays.stream(values()).filter(t -> t.name.equalsIgnoreCase(name))
+                .findFirst().orElse(null);
     }
 
 }
