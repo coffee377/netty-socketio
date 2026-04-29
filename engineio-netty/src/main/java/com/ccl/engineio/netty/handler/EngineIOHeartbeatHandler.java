@@ -9,6 +9,17 @@ import io.netty.handler.timeout.IdleStateHandler;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Engine.IO 心跳处理器
+ *
+ * <p>继承自 Netty 的 {@link IdleStateHandler}，负责检测连接空闲状态并发送心跳：
+ * <ul>
+ *   <li>READER_IDLE：读空闲超时，移除会话并关闭连接</li>
+ *   <li>WRITER_IDLE：写空闲超时，发送 PING 消息维持连接</li>
+ * </ul>
+ *
+ * @see <a href="https://socket.io/docs/v4/engine-io-protocol/#heartbeat">Engine.IO Heartbeat</a>
+ */
 public class EngineIOHeartbeatHandler extends IdleStateHandler {
 
     private final SessionManager sessionManager;
@@ -38,7 +49,8 @@ public class EngineIOHeartbeatHandler extends IdleStateHandler {
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof IdleStateEvent idleStateEvent) {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent idleStateEvent = (IdleStateEvent) evt;
             channelIdle(ctx, idleStateEvent);
         } else {
             super.userEventTriggered(ctx, evt);

@@ -10,7 +10,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Engine.IO WebSocket 升级处理器
- * 处理 WebSocket 握手完成事件，标记传输升级为 WebSocket 模式
+ *
+ * <p>处理 WebSocket 握手完成事件，标记传输升级为 WebSocket 模式。
  */
 public class EngineIOUpgradeHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
@@ -22,22 +23,18 @@ public class EngineIOUpgradeHandler extends SimpleChannelInboundHandler<WebSocke
         this.sessionManager = SessionManager.getInstance();
     }
 
-    /**
-     * 处理 WebSocket 帧，提取 ByteBuf 传递给下游
-     */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
-        if (frame instanceof TextWebSocketFrame textFrame) {
+        if (frame instanceof TextWebSocketFrame) {
+            TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
             ByteBuf buffer = textFrame.content();
             ctx.fireChannelRead(buffer.retainedSlice());
-        } else if (frame instanceof BinaryWebSocketFrame binaryFrame) {
+        } else if (frame instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryFrame = (BinaryWebSocketFrame) frame;
             ctx.fireChannelRead(binaryFrame.content().retainedSlice());
         }
     }
 
-    /**
-     * 处理 WebSocket 握手完成事件
-     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
@@ -52,9 +49,6 @@ public class EngineIOUpgradeHandler extends SimpleChannelInboundHandler<WebSocke
         super.userEventTriggered(ctx, evt);
     }
 
-    /**
-     * 处理 WebSocket 升级逻辑
-     */
     private void handleWebSocketUpgrade(ChannelHandlerContext ctx) {
         String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
         if (sessionId == null) {
