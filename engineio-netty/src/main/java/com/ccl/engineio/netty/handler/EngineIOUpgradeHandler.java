@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>处理 WebSocket 握手完成事件，标记传输升级为 WebSocket 模式。
  */
-public class EngineIOUpgradeHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
+public class EngineIOUpgradeHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(EngineIOUpgradeHandler.class);
 
@@ -24,15 +24,21 @@ public class EngineIOUpgradeHandler extends SimpleChannelInboundHandler<WebSocke
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
-        if (frame instanceof TextWebSocketFrame) {
-            TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        log.info("EngineIOUpgradeHandler");
+        if (msg instanceof TextWebSocketFrame) {
+            TextWebSocketFrame textFrame = (TextWebSocketFrame) msg;
             ByteBuf buffer = textFrame.content();
             ctx.fireChannelRead(buffer.retainedSlice());
-        } else if (frame instanceof BinaryWebSocketFrame) {
-            BinaryWebSocketFrame binaryFrame = (BinaryWebSocketFrame) frame;
+        } else if (msg instanceof BinaryWebSocketFrame) {
+            BinaryWebSocketFrame binaryFrame = (BinaryWebSocketFrame) msg;
             ctx.fireChannelRead(binaryFrame.content().retainedSlice());
         }
+        super.channelRead(ctx, msg);
+    }
+
+    public void chanelRead(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
+
     }
 
     @Override

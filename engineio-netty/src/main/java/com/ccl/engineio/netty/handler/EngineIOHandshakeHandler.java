@@ -7,14 +7,15 @@ import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.core.session.SessionManager;
 
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
+import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
+import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Engine.IO 握手协议处理器
@@ -82,7 +84,7 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             Map<String, List<String>> parameters = queryDecoder.parameters();
 
             List<String> sids = parameters.get("sid");
-            if (sids != null && !sids.isEmpty() && sessionManager.hasSession(sids.get(0))) {
+            if (sids != null && sids.get(0) != null) {
                 ClientContext session = sessionManager.getSession(sids.get(0));
                 session.setTransportType(TransportType.POLLING);
                 ctx.channel().attr(ChannelAttributes.SESSION_ID).set(session.getSessionId());
@@ -114,52 +116,116 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
             clientContext.setRemoteAddress(clientAddress.getAddress().toString());
         }
         ctx.channel().attr(ChannelAttributes.SESSION_ID).set(clientContext.getSessionId());
-
         if (log.isDebugEnabled()) {
             log.debug("Handshake successful for client: {} with session: {}",
                     ctx.channel().remoteAddress(), clientContext.getSessionId());
         }
 
-        OpenData openData = new OpenData();
-        openData.setSid(clientContext.getSessionId());
-        List<String> upgrades = Collections.singletonList(TransportType.WEBSOCKET.getName());
-        openData.setUpgrades(upgrades);
-        openData.setPingInterval((int) sessionManager.getPingInterval());
-        openData.setPingTimeout((int) sessionManager.getPingTimeout());
-        openData.setMaxPayload(maxFramePayloadLength);
+        if (TransportType.WEBSOCKET.equals(transportType)) {
+            handshake(ctx, clientContext.getSessionId(), request.uri(), request);
+        } else if (TransportType.POLLING.equals(transportType)) {
+            OpenData openData = new OpenData();
+            openData.setSid(clientContext.getSessionId());
+            List<String> upgrades = Collections.singletonList(TransportType.WEBSOCKET.getName());
+            openData.setUpgrades(upgrades);
+            openData.setPingInterval((int) sessionManager.getPingInterval());
+            openData.setPingTimeout((int) sessionManager.getPingTimeout());
+            openData.setMaxPayload(maxFramePayloadLength);
 
-        EngineIOPacket<String> packet;
+            EngineIOPacket<String> packet;
 
+            try {
+                String json = OBJECT_MAPPER.writeValueAsString(openData);
+                packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
+            } catch (JsonProcessingException e) {
+                log.error("Failed to serialize OpenData", e);
+                sendHttpResponse(ctx, request, HttpResponseStatus.INTERNAL_SERVER_ERROR);
+                return;
+            }
+
+            byte[] bytes = parser.encodePacket(packet, true);
+            ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
+            if (log.isInfoEnabled()) {
+                log.info("{}", byteBuf.toString(StandardCharsets.UTF_8));
+            }
+
+            FullHttpResponse response = new DefaultFullHttpResponse(
+                    HttpVersion.HTTP_1_1,
+                    HttpResponseStatus.OK,
+                    byteBuf);
+
+            boolean isBinary = false;
+
+            if (isBinary) {
+                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
+                response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+            }
+
+            addCorsHeaders(response);
+
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        }
+
+    }
+
+    private String getWebSocketLocation(HttpRequest req, boolean ssl) {
+        String protocol = "ws://";
+        if (ssl) {
+            protocol = "wss://";
+        }
+        return protocol + req.headers().get(HttpHeaderNames.HOST) + req.uri();
+    }
+
+    private void handshake(ChannelHandlerContext ctx, final String sessionId, String path, FullHttpRequest req) {
+        final Channel channel = ctx.channel();
+
+        // RFC 6455 reserves the RSV bits for negotiated WebSocket extensions (not only compression).
+        // In this server, extension handling is effectively tied to WebSocketServerCompressionHandler,
+        // which is installed only when websocketCompression is enabled. Keep the handshake's
+        // allowExtensions flag consistent with that to avoid negotiating extensions the pipeline
+        // won't actually handle.
+        WebSocketServerHandshakerFactory factory = new WebSocketServerHandshakerFactory(getWebSocketLocation(req, false),
+                null, true, 64 * 1024);
+        WebSocketServerHandshaker handshaker = factory.newHandshaker(req);
+        if (handshaker != null) {
+            try {
+                ChannelFuture f = handshaker.handshake(channel, req);
+                f.addListener((ChannelFutureListener) future -> {
+                    if (!future.isSuccess()) {
+                        log.error("Can't handshake {}", sessionId, future.cause());
+                        closeClient(sessionId, channel);
+                        return;
+                    }
+                    channel.pipeline().addBefore("wsUpgrade", "webSocketAggregator",
+                            new WebSocketFrameAggregator(64 * 1024));
+                    sendOpenPacket(sessionId, ctx);
+                    connectClient(channel, sessionId);
+                });
+            } catch (Exception e) {
+                log.warn("Can't handshake {}, {}", sessionId, e.getMessage(), e);
+                closeClient(sessionId, channel);
+            }
+        } else {
+            WebSocketServerHandshakerFactory.sendUnsupportedVersionResponse(ctx.channel());
+        }
+    }
+
+    private void connectClient(Channel channel, String sessionId) {
+
+    }
+
+    private void closeClient(String sessionId, Channel channel) {
         try {
-            String json = OBJECT_MAPPER.writeValueAsString(openData);
-            packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize OpenData", e);
-            sendHttpResponse(ctx, request, HttpResponseStatus.INTERNAL_SERVER_ERROR);
-            return;
+            channel.close();
+        } catch (Exception t) {
+            log.warn("Can't close channel for sessionId: {}", sessionId, t);
         }
-
-        byte[] bytes = parser.encodePacket(packet, true);
-        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
-        if (log.isInfoEnabled()) {
-            log.info("{}", byteBuf.toString(StandardCharsets.UTF_8));
-        }
-
-        FullHttpResponse response = new DefaultFullHttpResponse(
-                HttpVersion.HTTP_1_1,
-                HttpResponseStatus.OK,
-                byteBuf);
-
-        boolean isBinary = false;
-
-        if (isBinary) {
-            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
-            response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
-        }
-
-        addCorsHeaders(response);
-
-        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+//        ClientHead clientHead = clientsBox.get(sessionId);
+//        if (clientHead != null && clientHead.getNamespaces().isEmpty()) {
+//            clientsBox.removeClient(sessionId);
+//            clientHead.disconnect();
+//        }
+        log.info("Client with sessionId: {} was disconnected", sessionId);
     }
 
     private void addWebSocketProtocolHandler(ChannelHandlerContext ctx) {
@@ -209,6 +275,38 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
         addCorsHeaders(response);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         request.release();
+    }
+
+    private void sendOpenPacket(String sessionId, ChannelHandlerContext ctx) {
+        ClientContext clientContext = sessionManager.getSession(sessionId);
+        if (clientContext == null) {
+            log.warn("Session not found for Open packet: {}", sessionId);
+            return;
+        }
+
+        OpenData openData = new OpenData();
+        openData.setSid(sessionId);
+        openData.setUpgrades(Collections.singletonList(TransportType.WEBSOCKET.getName()));
+        openData.setPingInterval((int) sessionManager.getPingInterval());
+        openData.setPingTimeout((int) sessionManager.getPingTimeout());
+        openData.setMaxPayload(maxFramePayloadLength);
+
+        EngineIOPacket<String> packet;
+        try {
+            String json = OBJECT_MAPPER.writeValueAsString(openData);
+            packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize OpenData", e);
+            return;
+        }
+
+        byte[] bytes = parser.encodePacket(packet, true);
+        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
+        if (log.isDebugEnabled()) {
+            log.debug("Sending OPEN packet to session: {}", sessionId);
+        }
+
+        ctx.writeAndFlush(byteBuf);
     }
 
 }

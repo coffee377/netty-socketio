@@ -3,36 +3,27 @@ package com.ccl.engineio.netty.transport;
 import com.ccl.engineio.core.entity.ClientContext;
 import com.ccl.engineio.exception.SessionNotFoundException;
 import com.ccl.engineio.core.parser.ParserV4;
-import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.core.session.SessionManager;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.util.concurrent.Future;
+import io.netty.channel.*;
+import io.netty.handler.codec.http.*;
+import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * Engine.IO HTTP 长轮询（Polling）传输处理器
@@ -49,7 +40,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  * @see <a href="https://socket.io/docs/v4/engine-io-protocol/#transportpolling">Engine.IO Polling Protocol</a>
  */
-public class PollingHandler extends ChannelDuplexHandler {
+public class PollingHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(PollingHandler.class);
 
@@ -69,116 +60,153 @@ public class PollingHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (!(msg instanceof FullHttpRequest)) {
-            super.channelRead(ctx, msg);
-            return;
-        }
+        if (msg instanceof FullHttpRequest) {
+            FullHttpRequest request = (FullHttpRequest) msg;
+            QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
 
-        FullHttpRequest request = (FullHttpRequest) msg;
-        QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
-        Map<String, List<String>> params = queryDecoder.parameters();
-        List<String> sidValues = params.get("sid");
-
-        if (sidValues == null || sidValues.isEmpty()) {
-            ctx.fireChannelRead(msg);
-            return;
-        }
-
-        String channelId = sidValues.get(0);
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (sessionId == null || !sessionId.equals(channelId)) {
-            sendHttpRequestError(ctx, request, "Invalid session id");
-            return;
-        }
-
-        if (!sessionManager.hasSession(channelId)) {
-            sendHttpRequestError(ctx, request, "No session found");
-            return;
-        }
-
-        List<String> transportValues = params.get("transport");
-        boolean isPolling = true;
-        if (transportValues != null && !transportValues.isEmpty()) {
-            try {
-                isPolling = TransportType.valueOf(transportValues.get(0).toUpperCase()) == TransportType.POLLING;
-            } catch (IllegalArgumentException ignored) {
+            List<String> transports = queryDecoder.parameters().get("transport");
+            if (transports != null && TransportType.POLLING.getName().equals(transports.get(0))) {
+                List<String> sid = queryDecoder.parameters().get("sid");
+                if (sid != null && sid.get(0) != null) {
+                    handleMessage(request, sid.get(0), queryDecoder, ctx);
+                }
+                return;
             }
         }
+        super.channelRead(ctx, msg);
+    }
 
-        if (!isPolling) {
-            super.channelRead(ctx, msg);
-            return;
-        }
-
-        String method = request.method().name();
-        if ("POST".equalsIgnoreCase(method)) {
-            handlePost(ctx, channelId, request);
-        } else if ("GET".equalsIgnoreCase(method)) {
-            handleGet(ctx, channelId, request);
+    private void handleMessage(FullHttpRequest request, String sid, QueryStringDecoder queryDecoder, ChannelHandlerContext ctx) {
+        String origin = request.headers().get(HttpHeaderNames.ORIGIN);
+        if (HttpMethod.POST.equals(request.method())) {
+            handlePost(ctx, sid, origin, request);
+        } else if (HttpMethod.GET.equals(request.method())) {
+            handleGet(ctx, sid, origin, request);
+        } else if (HttpMethod.OPTIONS.equals(request.method())) {
+            handleOptions(ctx, sid, request);
         } else {
             sendHttpResponse(ctx, request, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
-    @Override
-    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-        if (msg instanceof EngineIOPacket<?>) {
-            EngineIOPacket<?> packet = (EngineIOPacket<?>) msg;
-            String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-            if (sessionId != null && sessionManager.hasSession(sessionId)) {
-                queuePacket(sessionId, packet);
-                promise.setSuccess();
-                return;
-            }
-        }
-        super.write(ctx, msg, promise);
-    }
-
-    private void handlePost(ChannelHandlerContext ctx, String sessionId, FullHttpRequest request) {
+    private void handlePost(ChannelHandlerContext ctx, String sessionId, String origin, FullHttpRequest request) {
         ByteBuf content = request.content();
-        int readableBytes = content.readableBytes();
 
-        if (readableBytes > 0) {
-            byte[] bodyBytes = new byte[readableBytes];
-            content.getBytes(content.readerIndex(), bodyBytes);
+        // FullHttpRequest is reference-counted and can be released by upstream.
+        // Retain the content since we pass it further down the pipeline.
+        content = content.retain();
 
-            try {
-                List<EngineIOPacket<?>> packets = parser.decodePayload(bodyBytes, DataType.PLAINTEXT);
-                for (EngineIOPacket<?> packet : packets) {
-                    processPacket(ctx, sessionId, packet);
-                }
-            } catch (Exception e) {
-                log.error("Failed to decode polling POST payload for session: {}", sessionId, e);
-            }
+        log.info("Polling POST {} => {}", origin, content.toString(StandardCharsets.UTF_8));
+        // int readableBytes = content.readableBytes();
+
+        ByteBuf out = ctx.alloc().ioBuffer();
+        out.writeBytes("ok".getBytes(CharsetUtil.UTF_8));
+        HttpResponse res = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
+
+        res.headers()
+                .add(HttpHeaderNames.CONTENT_TYPE, "text/plain")
+                .add(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        if (sessionId != null) {
+            res.headers().add(HttpHeaderNames.SET_COOKIE, "io=" + sessionId);
         }
 
-        drainAndRespond(ctx, request, sessionId);
+        // String origin = channel.attr(ORIGIN).get();
+        addOriginHeaders(origin, res);
+
+        HttpUtil.setContentLength(res, out.readableBytes());
+
+        sendMessage(ctx.channel(), out, res);
+
+        // release POST response before message processing
+//        ctx.channel().writeAndFlush(new XHRPostMessage(origin, sessionId));
+
+
+//        if (readableBytes > 0) {
+//            byte[] bodyBytes = new byte[readableBytes];
+//            content.getBytes(content.readerIndex(), bodyBytes);
+//
+//            try {
+//                List<EngineIOPacket<?>> packets = parser.decodePayload(bodyBytes, DataType.PLAINTEXT);
+//                for (EngineIOPacket<?> packet : packets) {
+//                    processPacket(ctx, sessionId, packet);
+//                }
+//            } catch (Exception e) {
+//                log.error("Failed to decode polling POST payload for session: {}", sessionId, e);
+//            }
+//        }
+//
+//        drainAndRespond(ctx, request, sessionId);
     }
 
-    private void handleGet(ChannelHandlerContext ctx, String sessionId, FullHttpRequest request) {
-        ClientContext context = sessionManager.getSession(sessionId);
-        ConcurrentLinkedQueue<PendingRequest> pendingQueue = getPendingQueue(sessionId);
-        PendingRequest pending = new PendingRequest(ctx, request);
-        pendingQueue.add(pending);
+    private void sendMessage(Channel channel, ByteBuf out, HttpResponse res) {
+        channel.write(res);
 
-        try {
-            boolean drained = tryDrainPackets(ctx, request, sessionId);
-            if (drained) {
-                return;
-            }
-        } catch (Exception e) {
-            pendingQueue.remove(pending);
-            log.error("Error draining packets for session: {}", sessionId, e);
+        if (out.isReadable()) {
+            channel.write(new DefaultHttpContent(out));
+        } else {
+            out.release();
         }
 
-        if (isClientDisconnected(context)) {
-            pendingQueue.remove(pending);
-            sendDisconnectResponse(ctx, request);
-            return;
+        channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    private void addOriginHeaders(String origin, HttpResponse res) {
+        if (origin != null) {
+            res.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+            res.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.TRUE);
+        } else {
+            res.headers().add(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN, "*");
+        }
+    }
+
+    private void handleGet(ChannelHandlerContext ctx, String sessionId, String origin, FullHttpRequest request) {
+        ByteBuf content = request.content();
+
+        // FullHttpRequest is reference-counted and can be released by upstream.
+        // Retain the content since we pass it further down the pipeline.
+        content = content.retain();
+        log.info("Polling GET {} => {}", origin, content.toString(StandardCharsets.UTF_8));
+
+        HttpResponse res = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
+
+        res.headers()
+                .add(HttpHeaderNames.CONTENT_TYPE, "text/plain")
+                .add(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+        if (sessionId != null) {
+            res.headers().add(HttpHeaderNames.SET_COOKIE, "io=" + sessionId);
         }
 
-        long longPollTimeout = Math.max(POST_TIMEOUT, sessionManager.getPingInterval() + sessionManager.getPingTimeout());
-        scheduleLongPollTimeout(ctx, sessionId, pending, longPollTimeout, pendingQueue);
+        // String origin = channel.attr(ORIGIN).get();
+        addOriginHeaders(origin, res);
+        ctx.channel().writeAndFlush(res);
+
+//        ClientContext context = sessionManager.getSession(sessionId);
+//        ConcurrentLinkedQueue<PendingRequest> pendingQueue = getPendingQueue(sessionId);
+//        PendingRequest pending = new PendingRequest(ctx, request);
+//        pendingQueue.add(pending);
+//
+//        try {
+//            boolean drained = tryDrainPackets(ctx, request, sessionId);
+//            if (drained) {
+//                return;
+//            }
+//        } catch (Exception e) {
+//            pendingQueue.remove(pending);
+//            log.error("Error draining packets for session: {}", sessionId, e);
+//        }
+//
+//        if (isClientDisconnected(context)) {
+//            pendingQueue.remove(pending);
+//            sendDisconnectResponse(ctx, request);
+//            return;
+//        }
+//
+//        long longPollTimeout = Math.max(POST_TIMEOUT, sessionManager.getPingInterval() + sessionManager.getPingTimeout());
+//        scheduleLongPollTimeout(ctx, sessionId, pending, longPollTimeout, pendingQueue);
+    }
+
+    private void handleOptions(ChannelHandlerContext ctx, String sid, FullHttpRequest request) {
+        // TODO: 2026/04/29 21:28 handleOptions
     }
 
     private void processPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<?> packet) {
@@ -393,7 +421,10 @@ public class PollingHandler extends ChannelDuplexHandler {
 
         void cancel() {
             if (request != null) {
-                request.release();
+                int i = request.refCnt();
+                if (i > 0) {
+                    request.release();
+                }
             }
         }
     }
