@@ -29,6 +29,7 @@ subprojects {
                 "-Xlint:deprecation"
             )
         )
+        options.release.set(8)
     }
 
     tasks.withType<Test> {

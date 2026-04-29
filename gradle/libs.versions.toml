@@ -19,8 +19,8 @@ nats = "2.25.1"
 kafka = "4.1.1"
 
 # Test versions
-junit = "6.0.2"
-junitPlatformLauncher = "6.0.2"
+junit = "5.8.2"
+junitPlatformLauncher = "1.8.2"
 testcontainers = "2.0.3"
 awaitility = "4.3.0"
 assertj = "3.27.6"
