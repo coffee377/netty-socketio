@@ -13,15 +13,19 @@ import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GenericFutureListener;
+import io.netty.util.concurrent.ScheduledFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
@@ -40,15 +44,19 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  *
  * @see <a href="https://socket.io/docs/v4/engine-io-protocol/#transportpolling">Engine.IO Polling Protocol</a>
  */
-public class PollingTransport extends ChannelInboundHandlerAdapter {
+public class PollingTransport extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger log = LoggerFactory.getLogger(PollingTransport.class);
 
     private static final long POST_TIMEOUT = 60_000L;
 
-    private static final ConcurrentHashMap<String, ConcurrentLinkedQueue<EngineIOPacket<?>>> OUTPUT_BUFFER = new ConcurrentHashMap<>();
+    // 核心：Session -> 挂起的 GET 请求队列（线程安全）
+    private final ConcurrentHashMap<String, Queue<PendingRequest>> sessionPendingGets = new ConcurrentHashMap<>();
+    // 可选：每个 Session 待发送的消息队列（无消息时 GET 才会悬挂）
+    private final ConcurrentHashMap<String, Queue<String>> sessionPendingMessages = new ConcurrentHashMap<>();
 
     private static final ConcurrentHashMap<String, ConcurrentLinkedQueue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, ConcurrentLinkedQueue<EngineIOPacket<?>>> OUTPUT_BUFFER = new ConcurrentHashMap<>();
 
     private final ParserV4 parser;
     private final SessionManager sessionManager;
@@ -59,37 +67,62 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof FullHttpRequest) {
-            FullHttpRequest request = (FullHttpRequest) msg;
-            QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
-
-            List<String> transports = queryDecoder.parameters().get("transport");
-            if (transports != null && TransportType.POLLING.getName().equals(transports.get(0))) {
-                List<String> sid = queryDecoder.parameters().get("sid");
-                if (sid != null && sid.get(0) != null) {
-                    handleMessage(request, sid.get(0), queryDecoder, ctx);
-                }
-                return;
-            }
+    public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+        // 1. 校验 HTTP 请求
+        if (!request.decoderResult().isSuccess()) {
+            sendErrorResponse(ctx, HttpResponseStatus.BAD_REQUEST);
+            return;
         }
-        super.channelRead(ctx, msg);
+
+        // 2. 解析 Session ID（从 URL 参数获取）
+        String sessionId = getSessionIdFromRequest(request);
+        if (sessionId == null || sessionId.isEmpty()) {
+            sendErrorResponse(ctx, HttpResponseStatus.BAD_REQUEST);
+            return;
+        }
+
+        // 3. 分方法处理 GET/POST
+        handleMessage(ctx, request, sessionId);
     }
 
-    private void handleMessage(FullHttpRequest request, String sid, QueryStringDecoder queryDecoder, ChannelHandlerContext ctx) {
+    private String getSessionIdFromRequest(FullHttpRequest request) {
+        QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
+        return decoder.parameters().getOrDefault("sid", Collections.emptyList()).stream().findFirst().orElse(null);
+    }
+
+    private void sendSuccessResponse(ChannelHandlerContext ctx, String content, String origin) {
+        FullHttpResponse response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1,
+                HttpResponseStatus.OK,
+                Unpooled.copiedBuffer(content, CharsetUtil.UTF_8)
+        );
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
+        addOriginHeaders(origin, response);
+        HttpUtil.setContentLength(response, response.content().readableBytes());
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+    }
+
+
+    private void sendErrorResponse(ChannelHandlerContext ctx, HttpResponseStatus status) {
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+    }
+
+    private void handleMessage(ChannelHandlerContext ctx, FullHttpRequest request, String sid) {
         String origin = request.headers().get(HttpHeaderNames.ORIGIN);
-        if (HttpMethod.POST.equals(request.method())) {
-            handlePost(ctx, sid, origin, request);
-        } else if (HttpMethod.GET.equals(request.method())) {
-            handleGet(ctx, sid, origin, request);
+        if (HttpMethod.GET.equals(request.method())) {
+            handleGet(ctx, request, sid, origin);
+        } else if (HttpMethod.POST.equals(request.method())) {
+            handlePost(ctx, request, sid, origin);
         } else if (HttpMethod.OPTIONS.equals(request.method())) {
-            handleOptions(ctx, sid, request);
+            handleOptions(ctx, request, sid);
         } else {
             sendHttpResponse(ctx, request, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
     }
 
-    private void handlePost(ChannelHandlerContext ctx, String sessionId, String origin, FullHttpRequest request) {
+    private void handlePost(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
         ByteBuf content = request.content();
 
         // FullHttpRequest is reference-counted and can be released by upstream.
@@ -99,56 +132,37 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
         log.info("Polling POST {} => {}", origin, content.toString(StandardCharsets.UTF_8));
         // int readableBytes = content.readableBytes();
 
-        ByteBuf out = ctx.alloc().ioBuffer();
-        out.writeBytes("ok".getBytes(CharsetUtil.UTF_8));
-        HttpResponse res = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
+        // 1. 立即响应 HTTP 200（符合 Polling 协议）
+        sendSuccessResponse(ctx, "ok", origin);
 
-        res.headers()
-                .add(HttpHeaderNames.CONTENT_TYPE, "text/plain")
-                .add(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-        if (sessionId != null) {
-            res.headers().add(HttpHeaderNames.SET_COOKIE, "io=" + sessionId);
-        }
+        // 2. 解析 POST 数据包（请求体）
+        String packet = content.toString(CharsetUtil.UTF_8);
 
-        // String origin = channel.attr(ORIGIN).get();
-        addOriginHeaders(origin, res);
+        // 3. 执行业务逻辑（自定义处理 EngineIO 数据包）
+        processEngineIOPacket(sessionId, packet);
 
-        HttpUtil.setContentLength(res, out.readableBytes());
-
-        sendMessage(ctx.channel(), out, res);
-
-        // release POST response before message processing
-//        ctx.channel().writeAndFlush(new XHRPostMessage(origin, sessionId));
-
-
-//        if (readableBytes > 0) {
-//            byte[] bodyBytes = new byte[readableBytes];
-//            content.getBytes(content.readerIndex(), bodyBytes);
-//
-//            try {
-//                List<EngineIOPacket<?>> packets = parser.decodePayload(bodyBytes, DataType.PLAINTEXT);
-//                for (EngineIOPacket<?> packet : packets) {
-//                    processPacket(ctx, sessionId, packet);
-//                }
-//            } catch (Exception e) {
-//                log.error("Failed to decode polling POST payload for session: {}", sessionId, e);
-//            }
-//        }
-//
-//        drainAndRespond(ctx, request, sessionId);
+        // 4. 若有新消息，唤醒挂起的 GET 请求
+        wakeupPendingGet(sessionId, origin);
     }
 
-    private void sendMessage(Channel channel, ByteBuf out, HttpResponse res) {
-        channel.write(res);
-
-        if (out.isReadable()) {
-            channel.write(new DefaultHttpContent(out));
-        } else {
-            out.release();
+    // 唤醒挂起的 GET：发送待发消息
+    private void wakeupPendingGet(String sessionId, String origin) {
+        Queue<PendingRequest> pendingGets = sessionPendingGets.get(sessionId);
+        Queue<String> pendingMessages = sessionPendingMessages.get(sessionId);
+        if (pendingGets == null || pendingGets.isEmpty() || pendingMessages == null || pendingMessages.isEmpty()) {
+            return;
         }
 
-        channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
-//                .addListener(ChannelFutureListener.CLOSE);
+        PendingRequest pendingGet = pendingGets.poll();
+        String message = pendingMessages.poll();
+        sendSuccessResponse(pendingGet.getCtx(), message, origin);
+        pendingGet.getPromise().setSuccess();
+    }
+
+    // 处理 EngineIO 业务数据包（自定义实现）
+    private void processEngineIOPacket(String sessionId, String packet) {
+        // 你的业务逻辑：解析消息、存储、转发等
+        log.warn("Session[{}] 收到 POST 数据包：{}", sessionId, packet);
     }
 
     private void addOriginHeaders(String origin, HttpResponse res) {
@@ -160,53 +174,53 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void handleGet(ChannelHandlerContext ctx, String sessionId, String origin, FullHttpRequest request) {
-        ByteBuf content = request.content();
+    private void handleGet(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
+        log.info("Polling GET {} => {}", origin, request.content().toString(StandardCharsets.UTF_8));
+        // 1. 获取当前 Session 的待发送消息
+        Queue<String> pendingMessages = sessionPendingMessages.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
+        String message = pendingMessages.poll();
 
-        // FullHttpRequest is reference-counted and can be released by upstream.
-        // Retain the content since we pass it further down the pipeline.
-        content = content.retain();
-        log.info("Polling GET {} => {}", origin, content.toString(StandardCharsets.UTF_8));
-
-        HttpResponse res = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
-
-        res.headers()
-                .add(HttpHeaderNames.CONTENT_TYPE, "text/plain")
-                .add(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-        if (sessionId != null) {
-            res.headers().add(HttpHeaderNames.SET_COOKIE, "io=" + sessionId);
+        // 2. 有消息：立即响应，不悬挂
+        if (message != null) {
+            sendSuccessResponse(ctx, message, origin);
+            return;
         }
 
-        // String origin = channel.attr(ORIGIN).get();
-        addOriginHeaders(origin, res);
-        ctx.channel().writeAndFlush(res);
+        // 3. 无消息：悬挂请求，等待超时/消息/升级通知
+        // 3.1 创建异步 Promise
+        ChannelPromise promise = ctx.newPromise();
+        // 3.2 创建超时任务：超时后自动响应空包
+        ScheduledFuture<?> timeoutTask = ctx.executor().schedule(() -> {
+            onPendingGetTimeout(sessionId, origin);
+        }, 60_000, TimeUnit.MILLISECONDS);
 
-//        ClientContext context = sessionManager.getSession(sessionId);
-//        ConcurrentLinkedQueue<PendingRequest> pendingQueue = getPendingQueue(sessionId);
-//        PendingRequest pending = new PendingRequest(ctx, request);
-//        pendingQueue.add(pending);
-//
-//        try {
-//            boolean drained = tryDrainPackets(ctx, request, sessionId);
-//            if (drained) {
-//                return;
-//            }
-//        } catch (Exception e) {
-//            pendingQueue.remove(pending);
-//            log.error("Error draining packets for session: {}", sessionId, e);
-//        }
-//
-//        if (isClientDisconnected(context)) {
-//            pendingQueue.remove(pending);
-//            sendDisconnectResponse(ctx, request);
-//            return;
-//        }
-//
-//        long longPollTimeout = Math.max(POST_TIMEOUT, sessionManager.getPingInterval() + sessionManager.getPingTimeout());
-//        scheduleLongPollTimeout(ctx, sessionId, pending, longPollTimeout, pendingQueue);
+        // 3.3 封装 PendingGet 并加入队列
+        PendingRequest pendingGet = new PendingRequest(ctx, promise, timeoutTask, sessionId);
+        Queue<PendingRequest> queue = sessionPendingGets.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
+        queue.offer(pendingGet);
+
+        // 3.4 Promise 完成时关闭连接（长轮询单次请求结束）
+        promise.addListener(future -> {
+            if (!timeoutTask.isDone()) {
+                timeoutTask.cancel(false); // 取消超时任务
+            }
+            ctx.close(); // 关闭连接（Polling 单次请求完成）
+        });
+
     }
 
-    private void handleOptions(ChannelHandlerContext ctx, String sid, FullHttpRequest request) {
+    // GET 超时回调：响应空包
+    private void onPendingGetTimeout(String sessionId, String origin) {
+        Queue<PendingRequest> queue = sessionPendingGets.get(sessionId);
+        if (queue == null || queue.isEmpty()) return;
+
+        PendingRequest pendingGet = queue.poll();
+        // 超时返回空响应
+        sendSuccessResponse(pendingGet.getCtx(), "", origin);
+        pendingGet.getPromise().setSuccess();
+    }
+
+    private void handleOptions(ChannelHandlerContext ctx, FullHttpRequest request, String sid) {
         // TODO: 2026/04/29 21:28 handleOptions
     }
 
@@ -243,18 +257,7 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (sessionId != null) {
-            ConcurrentLinkedQueue<PendingRequest> pendingQueue = PENDING_GETS.get(sessionId);
-            if (pendingQueue != null) {
-                PendingRequest pending;
-                while ((pending = pendingQueue.poll()) != null) {
-                    pending.cancel();
-                }
-            }
-            OUTPUT_BUFFER.remove(sessionId);
-            PENDING_GETS.remove(sessionId);
-        }
+        // 连接断开时，清理无效的 PendingGet（可选优化）
         super.channelInactive(ctx);
     }
 
@@ -263,44 +266,6 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
         log.error("Exception in polling handler for session: {}",
                 ctx.channel().attr(ChannelAttributes.SESSION_ID).get(), cause);
         ctx.close();
-    }
-
-    private void scheduleLongPollTimeout(ChannelHandlerContext ctx, String sessionId,
-                                         PendingRequest pending, long totalTimeout,
-                                         ConcurrentLinkedQueue<PendingRequest> pendingQueue) {
-        long checkInterval = Math.min(25_000L, totalTimeout);
-
-        ctx.executor().schedule(() -> {
-            boolean removed = pendingQueue.remove(pending);
-            if (!removed) {
-                return;
-            }
-
-            try {
-                boolean drained = tryDrainPackets(ctx, pending.request, sessionId);
-                if (drained) {
-                    return;
-                }
-
-                ClientContext context = sessionManager.getSession(sessionId);
-                if (isClientDisconnected(context)) {
-                    sendDisconnectResponse(ctx, pending.request);
-                    return;
-                }
-
-                long remaining = totalTimeout - checkInterval;
-                if (remaining > 0) {
-                    scheduleLongPollTimeout(ctx, sessionId, pending, remaining, pendingQueue);
-                } else {
-                    drainAndRespond(ctx, pending.request, sessionId);
-                }
-            } catch (SessionNotFoundException e) {
-                releaseRequest(pending.request);
-            } catch (Exception e) {
-                log.error("Error in long-polling timeout for session: {}", sessionId, e);
-                releaseRequest(pending.request);
-            }
-        }, checkInterval, java.util.concurrent.TimeUnit.MILLISECONDS);
     }
 
     private void queuePacket(String sessionId, EngineIOPacket<?> packet) {
@@ -395,15 +360,7 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
         sendHttpResponse(ctx, request, HttpResponseStatus.OK, packets);
     }
 
-    private void sendHttpRequestError(ChannelHandlerContext ctx, FullHttpRequest request, String message) {
-        ByteBuf content = Unpooled.copiedBuffer(message, java.nio.charset.StandardCharsets.UTF_8);
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
-                HttpResponseStatus.BAD_REQUEST, content);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
-        releaseRequest(request);
-        ctx.writeAndFlush(response).addListener((GenericFutureListener<ChannelFuture>) f ->
-                ctx.channel().close());
-    }
+
 
     private void releaseRequest(FullHttpRequest request) {
         if (request != null) {
@@ -413,20 +370,35 @@ public class PollingTransport extends ChannelInboundHandlerAdapter {
 
     private static class PendingRequest {
         private final ChannelHandlerContext ctx;
-        private final FullHttpRequest request;
+        // 异步响应 Promise
+        private final ChannelPromise promise;
+        // 超时定时任务
+        private final ScheduledFuture<?> timeoutTask;
+        // 所属 Session ID
+        private final String sessionId;
 
-        PendingRequest(ChannelHandlerContext ctx, FullHttpRequest request) {
+
+        public PendingRequest(ChannelHandlerContext ctx, ChannelPromise promise, ScheduledFuture<?> timeoutTask, String sessionId) {
             this.ctx = ctx;
-            this.request = request;
+            this.promise = promise;
+            this.timeoutTask = timeoutTask;
+            this.sessionId = sessionId;
         }
 
-        void cancel() {
-            if (request != null) {
-                int i = request.refCnt();
-                if (i > 0) {
-                    request.release();
-                }
-            }
+        public ChannelHandlerContext getCtx() {
+            return ctx;
+        }
+
+        public ChannelPromise getPromise() {
+            return promise;
+        }
+
+        public ScheduledFuture<?> getTimeoutTask() {
+            return timeoutTask;
+        }
+
+        public String getSessionId() {
+            return sessionId;
         }
     }
 }

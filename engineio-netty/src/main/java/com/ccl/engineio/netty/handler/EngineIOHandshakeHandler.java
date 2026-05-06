@@ -158,6 +158,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
             OpenData openData = new OpenData();
             openData.setSid(clientContext.getSessionId());
             List<String> upgrades = Collections.singletonList(TransportType.WEBSOCKET.getName());
+            upgrades = Collections.emptyList();
             openData.setUpgrades(upgrades);
             openData.setPingInterval((int) sessionManager.getPingInterval());
             openData.setPingTimeout((int) sessionManager.getPingTimeout());
@@ -176,8 +177,8 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
 
             byte[] bytes = parser.encodePacket(packet, true);
             ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
-            if (log.isInfoEnabled()) {
-                log.info("{}", byteBuf.toString(StandardCharsets.UTF_8));
+            if (log.isDebugEnabled()) {
+                log.debug("{}", byteBuf.toString(StandardCharsets.UTF_8));
             }
 
             FullHttpResponse response = new DefaultFullHttpResponse(
