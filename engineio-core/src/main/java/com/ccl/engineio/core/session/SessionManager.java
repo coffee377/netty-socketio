@@ -47,9 +47,7 @@ public class SessionManager {
      * 创建新会话。
      *
      * @return 会话 ID（UUID，去掉连字符）
-     * @deprecated Use {@link #createSession(TransportType)} instead
      */
-    @Deprecated
     public String createSession() {
         ClientContext session = createSession(TransportType.POLLING);
         return session.getSessionId();

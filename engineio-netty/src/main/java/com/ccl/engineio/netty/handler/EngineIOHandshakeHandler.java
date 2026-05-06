@@ -4,6 +4,7 @@ import com.ccl.engineio.core.entity.ClientContext;
 import com.ccl.engineio.core.entity.OpenData;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
+import com.ccl.engineio.core.protocol.EngineVersion;
 import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.core.session.SessionManager;
 
@@ -25,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Engine.IO 握手协议处理器
@@ -40,7 +40,7 @@ import java.util.UUID;
  * <p>
  * 握手完成后，数据传输由其他 Handler 负责。
  */
-public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
+public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger log = LoggerFactory.getLogger(EngineIOHandshakeHandler.class);
 
@@ -67,38 +67,69 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof FullHttpRequest) {
-            FullHttpRequest request = (FullHttpRequest) msg;
-            QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
-
-            String path = queryDecoder.path();
-            if (!path.startsWith(connectPath)) {
-                if (log.isWarnEnabled()) {
-                    log.warn("rejecting invalid path request: {} from client: {}", path, ctx.channel().remoteAddress());
-                }
-                sendHttpResponse(ctx, request, HttpResponseStatus.BAD_REQUEST);
-                return;
-            }
-
-            Map<String, List<String>> parameters = queryDecoder.parameters();
-
-            List<String> sids = parameters.get("sid");
-            if (sids != null && sids.get(0) != null) {
-                ClientContext session = sessionManager.getSession(sids.get(0));
-                session.setTransportType(TransportType.POLLING);
-                ctx.channel().attr(ChannelAttributes.SESSION_ID).set(session.getSessionId());
-                ctx.fireChannelRead(request);
-                return;
-            }
-
-            String transport = parameters.get("transport").stream().findFirst().orElse(null);
-            handleHandshake(ctx, request, transport, parameters);
-            return;
-        }
-
-        super.channelRead(ctx, msg);
+    public boolean acceptInboundMessage(Object msg) throws Exception {
+        return super.acceptInboundMessage(msg) && isV4Handshake((FullHttpRequest) msg);
     }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+        handleHandshake(ctx, req, "polling", null);
+    }
+
+    // 辅助方法：判断是否为EngineIO握手请求
+    private boolean isV4Handshake(FullHttpRequest req) {
+        QueryStringDecoder queryDecoder = new QueryStringDecoder(req.uri());
+        String path = queryDecoder.path();
+
+        String sid = getQueryParam(queryDecoder, "sid");
+        String transport = getQueryParam(queryDecoder, "transport");
+        String version = getQueryParam(queryDecoder, EngineVersion.EIO);
+        return path.startsWith(connectPath) && HttpMethod.GET.equals(req.method()) &&
+                TransportType.POLLING.getName().equals(transport) &&
+                sid == null && EngineVersion.V4.getStrValue().equals(version);
+    }
+
+    private String getQueryParam(QueryStringDecoder queryDecoder, String name) {
+        List<String> values = queryDecoder.parameters().get(name);
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values.stream().findFirst().orElse(null);
+    }
+
+//    @Override
+//    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+//        if (msg instanceof FullHttpRequest) {
+//            FullHttpRequest request = (FullHttpRequest) msg;
+//            QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
+//
+//            String path = queryDecoder.path();
+//            if (!path.startsWith(connectPath)) {
+//                if (log.isWarnEnabled()) {
+//                    log.warn("rejecting invalid path request: {} from client: {}", path, ctx.channel().remoteAddress());
+//                }
+//                sendHttpResponse(ctx, request, HttpResponseStatus.BAD_REQUEST);
+//                return;
+//            }
+//
+//            Map<String, List<String>> parameters = queryDecoder.parameters();
+//
+//            List<String> sids = parameters.get("sid");
+//            if (sids != null && sids.get(0) != null) {
+//                ClientContext session = sessionManager.getSession(sids.get(0));
+//                session.setTransportType(TransportType.POLLING);
+//                ctx.channel().attr(ChannelAttributes.SESSION_ID).set(session.getSessionId());
+//                ctx.fireChannelRead(request);
+//                return;
+//            }
+//
+//            String transport = parameters.get("transport").stream().findFirst().orElse(null);
+//            handleHandshake(ctx, request, transport, parameters);
+//            return;
+//        }
+//
+//        super.channelRead(ctx, msg);
+//    }
 
     private void handleHandshake(ChannelHandlerContext ctx, FullHttpRequest request,
                                  String transport, Map<String, List<String>> params) {
@@ -154,16 +185,12 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
                     HttpResponseStatus.OK,
                     byteBuf);
 
-            boolean isBinary = false;
-
-            if (isBinary) {
-                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
-                response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
-            }
-
+            response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
+            response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
             addCorsHeaders(response);
 
-            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(response);
+//                    .addListener(ChannelFutureListener.CLOSE);
         }
 
     }
@@ -237,20 +264,20 @@ public class EngineIOHandshakeHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest req, HttpResponseStatus status) {
-        if (log.isDebugEnabled()) {
-            log.debug("Sending HTTP error response: {} to client: {}", status, ctx.channel().remoteAddress());
-        }
-        FullHttpResponse response = new DefaultFullHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1, status);
+//        if (log.isDebugEnabled()) {
+//            log.debug("Sending HTTP error response: {} to client: {}", status, ctx.channel().remoteAddress());
+//        }
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status);
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-        req.release();
     }
 
+
     private void sendHttpRequestError(ChannelHandlerContext ctx, FullHttpRequest req, String message) {
-        if (log.isDebugEnabled()) {
-            log.debug("Sending WebSocket error frame to client: {} with message: {}", ctx.channel().remoteAddress(), message);
-        }
-        FullHttpResponse response = new DefaultFullHttpResponse(io.netty.handler.codec.http.HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
-        response.content().writeBytes(message.getBytes(StandardCharsets.UTF_8));
+//        if (log.isDebugEnabled()) {
+//            log.debug("Sending WebSocket error frame to client: {} with message: {}", ctx.channel().remoteAddress(), message);
+//        }
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
+//        response.content().writeBytes(message.getBytes(StandardCharsets.UTF_8));
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 

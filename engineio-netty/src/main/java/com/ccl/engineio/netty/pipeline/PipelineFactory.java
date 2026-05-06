@@ -1,7 +1,7 @@
 package com.ccl.engineio.netty.pipeline;
 
 import com.ccl.engineio.netty.handler.*;
-import com.ccl.engineio.netty.transport.PollingHandler;
+import com.ccl.engineio.netty.transport.PollingTransport;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -37,17 +37,18 @@ public class PipelineFactory extends ChannelInitializer<Channel> {
         ChannelPipeline pipeline = ch.pipeline();
 
         // --- HTTP ---
-        pipeline.addLast("httpCodec", new HttpServerCodec());
+        HttpServerCodec httpServerCodec = new HttpServerCodec();
+        pipeline.addLast("httpCodec", httpServerCodec);
         pipeline.addLast("httpAggregator", new HttpObjectAggregator(maxFramePayloadLength));
 
         // --- Engine.IO 握手 + Session 创建 ---
         pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler(connectPath, maxFramePayloadLength));
 
         // --- Engine.IO WebSocket 升级 ---
-        pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler());
+        pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler(httpServerCodec));
 
         // --- Engine.IO Polling ---
-        pipeline.addLast("polling", new PollingHandler());
+        pipeline.addLast("polling", new PollingTransport());
 
         // --- Engine.IO 编解码 ---
         pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));

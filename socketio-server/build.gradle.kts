@@ -11,7 +11,6 @@ dependencies {
     api(project(":socketio-netty"))
     api(project(":engineio-netty"))
 
-    implementation(platform(libs.netty.bom))
     implementation(libs.bundles.netty)
 
     implementation(libs.slf4j.api)

@@ -40,9 +40,9 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  *
  * @see <a href="https://socket.io/docs/v4/engine-io-protocol/#transportpolling">Engine.IO Polling Protocol</a>
  */
-public class PollingHandler extends ChannelInboundHandlerAdapter {
+public class PollingTransport extends ChannelInboundHandlerAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(PollingHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(PollingTransport.class);
 
     private static final long POST_TIMEOUT = 60_000L;
 
@@ -53,7 +53,7 @@ public class PollingHandler extends ChannelInboundHandlerAdapter {
     private final ParserV4 parser;
     private final SessionManager sessionManager;
 
-    public PollingHandler() {
+    public PollingTransport() {
         this.parser = ParserV4.getInstance();
         this.sessionManager = SessionManager.getInstance();
     }
@@ -147,7 +147,8 @@ public class PollingHandler extends ChannelInboundHandlerAdapter {
             out.release();
         }
 
-        channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
+        channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+//                .addListener(ChannelFutureListener.CLOSE);
     }
 
     private void addOriginHeaders(String origin, HttpResponse res) {
