@@ -5,7 +5,6 @@ import com.ccl.engineio.core.parser.ParserFactory;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
-import com.ccl.engineio.core.protocol.EngineIOPacket;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -82,7 +82,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode MESSAGE packet with string payload")
         void testEncodeMessagePacketWithString() {
-            EngineIOPacket<String> packet = EngineIOPacket.of("hello");
+            EngineIOPacket<String> packet = EngineIOPacket.builder().data("hello").build();
             byte[] encoded = parser.encodePacket(packet, true);
 
             assertEquals('4', (char) encoded[0]);
@@ -92,7 +92,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode PING packet without payload")
         void testEncodePingPacket() {
-            EngineIOPacket<Void> packet = EngineIOPacket.of(EngineIOPacket.Type.PING);
+            EngineIOPacket<?> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.PING).build();
             byte[] encoded = parser.encodePacket(packet, true);
 
             assertEquals(1, encoded.length);
@@ -102,7 +102,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode PONG packet with probe payload")
         void testEncodePongPacketWithProbe() {
-            EngineIOPacket<String> packet = EngineIOPacket.of(EngineIOPacket.Type.PONG, "probe");
+            EngineIOPacket<String> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.PONG).data("probe").build();
             byte[] encoded = parser.encodePacket(packet, true);
 
             assertEquals('3', (char) encoded[0]);
@@ -112,7 +112,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode UPGRADE packet")
         void testEncodeUpgradePacket() {
-            EngineIOPacket<Void> packet = EngineIOPacket.of(EngineIOPacket.Type.UPGRADE);
+            EngineIOPacket<?> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.UPGRADE).build();
             byte[] encoded = parser.encodePacket(packet, true);
 
             assertEquals('5', (char) encoded[0]);
@@ -122,7 +122,7 @@ public class ParserV4Test {
         @DisplayName("Should encode binary data when supportsBinary is true")
         void testEncodeBinaryData() {
             byte[] binaryData = new byte[]{0x01, 0x02, 0x03, 0x04};
-            EngineIOPacket<byte[]> packet = EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, binaryData);
+            EngineIOPacket<byte[]> packet = EngineIOPacket.builder().data(binaryData).build();
             byte[] encoded = parser.encodePacket(packet, true);
 
             assertEquals('4', (char) encoded[0]);
@@ -135,7 +135,7 @@ public class ParserV4Test {
         void testEncodeBinaryDataBase64() {
             byte[] binaryData = new byte[]{0x01, 0x02, 0x03, 0x04};
             String expectedBase64 = "AQIDBA==";
-            EngineIOPacket<byte[]> packet = EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, binaryData);
+            EngineIOPacket<byte[]> packet = EngineIOPacket.builder().data(binaryData).build();
             byte[] encoded = parser.encodePacket(packet, false);
 
             assertEquals('b', (char) encoded[0]);
@@ -249,7 +249,11 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode multiple packets in payload")
         void testEncodePayloadMultiplePackets() {
-            List<EngineIOPacket<?>> packets = Arrays.asList(EngineIOPacket.of("hello"), EngineIOPacket.of(EngineIOPacket.Type.PING), EngineIOPacket.of("world"));
+            List<EngineIOPacket<?>> packets = Arrays.asList(
+                    EngineIOPacket.builder().data("hello").build(),
+                    EngineIOPacket.builder().type(EngineIOPacket.Type.PING).build(),
+                    EngineIOPacket.builder().data("world").build()
+            );
 
             ByteBuffer buffer = parser.encodePayload(packets, true);
             byte[] payload = new byte[buffer.remaining()];
@@ -280,7 +284,10 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should encode payload with base64 binary data")
         void testEncodePayloadWithBinary() {
-            List<EngineIOPacket<?>> packets = Arrays.asList(EngineIOPacket.of("hello"), EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, new byte[]{0x01, 0x02, 0x03, 0x04}));
+            List<EngineIOPacket<?>> packets = Arrays.asList(
+                    EngineIOPacket.builder().data("hello").build(),
+                    EngineIOPacket.builder().data(new byte[]{0x01, 0x02, 0x03, 0x04}).build()
+            );
 
             ByteBuffer buffer = parser.encodePayload(packets, false);
             byte[] payload = new byte[buffer.remaining()];
@@ -308,7 +315,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should handle empty payload")
         void testEncodeDecodeEmptyPayload() {
-            List<EngineIOPacket<?>> packets = Arrays.asList();
+            List<EngineIOPacket<?>> packets = Collections.emptyList();
 
             java.nio.ByteBuffer buffer = parser.encodePayload(packets, true);
             assertEquals(0, buffer.remaining());
@@ -399,7 +406,7 @@ public class ParserV4Test {
         @DisplayName("Round-trip: encode then decode packet")
         void testEncodeDecodeRoundTrip() {
             String message = "test message";
-            EngineIOPacket<String> original = EngineIOPacket.of(message);
+            EngineIOPacket<String> original = EngineIOPacket.builder().data(message).build();
             byte[] encoded = parser.encodePacket(original, true);
             EngineIOPacket<?> decoded = parser.decodePacket(encoded, DataType.PLAINTEXT);
 
@@ -411,7 +418,7 @@ public class ParserV4Test {
         @DisplayName("Round-trip: encode then decode binary packet")
         void testEncodeDecodeBinaryRoundTrip() {
             byte[] binaryData = new byte[]{0x01, 0x02, 0x03, 0x04};
-            EngineIOPacket<byte[]> original = EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, binaryData);
+            EngineIOPacket<byte[]> original = EngineIOPacket.builder().data(binaryData).build();
             byte[] encoded = parser.encodePacket(original, true);
             EngineIOPacket<?> decoded = parser.decodePacket(encoded, DataType.BINARY);
 
@@ -464,7 +471,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should create packet with type and data")
         void testOfWithTypeAndData() {
-            EngineIOPacket<byte[]> packet = EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, "test".getBytes());
+            EngineIOPacket<byte[]> packet = EngineIOPacket.builder().data("test".getBytes()).build();
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
             assertArrayEquals("test".getBytes(), packet.getData());
         }
@@ -472,7 +479,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should create packet with type only")
         void testOfWithTypeOnly() {
-            EngineIOPacket<Void> packet = EngineIOPacket.of(EngineIOPacket.Type.PING);
+            EngineIOPacket<?> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.PING).build();
             assertEquals(EngineIOPacket.Type.PING, packet.getType());
             assertNull(packet.getData());
         }
@@ -480,7 +487,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should create MESSAGE packet from data")
         void testOfWithDataOnly() {
-            EngineIOPacket<String> packet = EngineIOPacket.of("hello");
+            EngineIOPacket<String> packet = EngineIOPacket.builder().data("hello").build();
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
             assertEquals("hello", packet.getData());
         }

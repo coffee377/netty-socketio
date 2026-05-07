@@ -1,5 +1,6 @@
 package com.ccl.engineio.core.parser;
 
+import com.ccl.engineio.core.codec.Encoder;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 
@@ -14,7 +15,7 @@ import java.util.List;
  * @author coffee377
  * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">Engine.IO 协议文档</a>
  */
-public interface Parser {
+public interface Parser extends Encoder {
 
     /**
      * 获取协议版本号
