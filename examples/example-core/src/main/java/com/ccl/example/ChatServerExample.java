@@ -2,8 +2,12 @@ package com.ccl.example;
 
 import com.ccl.socketio.server.SocketIOServer;
 import com.ccl.socketio.server.listener.SocketIOListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChatServerExample {
+
+    private final static Logger log = LoggerFactory.getLogger(ChatServerExample.class);
 
     public static void main(String[] args) {
         SocketIOServer server = SocketIOServer.builder()
@@ -35,11 +39,11 @@ public class ChatServerExample {
             }
         });
 
-        System.out.println("Starting Socket.IO Chat Server on port 3000...");
+        log.info("Starting Socket.IO Chat Server on http://localhost:{} ...", 4000);
         server.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("Shutting down...");
+            log.info("Shutting down...");
             server.stop();
         }));
     }
