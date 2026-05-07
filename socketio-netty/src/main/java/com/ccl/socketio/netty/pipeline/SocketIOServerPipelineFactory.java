@@ -7,6 +7,7 @@ import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -85,7 +86,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 
         // 3. 聚合完整HTTP请求
         pipeline.addLast("httpAggregator", new HttpObjectAggregator(65536));
-//        pipeline.addLast("chunked", new ChunkedWriteHandler());
+        pipeline.addLast("chunked", new ChunkedWriteHandler());
 
         // --- Idle state ---
 //        pipeline.addLast("idleState", new IdleStateHandler(
