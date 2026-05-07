@@ -3,70 +3,33 @@ package com.ccl.engineio.core.protocol;
 import java.util.Base64;
 
 /**
- * Engine.IO 数据包封装类
+ * Engine.IO 协议数据包封装
  *
- * @param <T> 数据类型
+ * <p>支持泛型负载，包含类型标识与对应数据，用于 Engine.IO 协议层数据传输</p>
+ *
+ * @param <T> 数据包负载的数据类型
  * @author coffee377
+ * @since 4.0.0-alpha.0
  */
 public final class EngineIOPacket<T> {
 
     /**
-     * 数据包类型
+     * 数据包类型标识
      */
     private final Type type;
 
     /**
-     * 数据
+     * 数据包负载数据
      */
     private final T data;
 
-    /**
-     * 私有构造函数，使用 of 工厂方法创建实例
-     *
-     * @param type 数据包类型
-     * @param data 数据
-     */
-    private EngineIOPacket(Type type, T data) {
-        this.type = type;
-        this.data = data;
+    private EngineIOPacket(Builder<T> builder) {
+        this.type = builder.type;
+        this.data = builder.data;
     }
 
     /**
-     * 创建指定类型和数据的包
-     *
-     * @param type 数据包类型
-     * @param data 数据
-     * @param <D>  数据类型
-     * @return EngineIOPacket 实例
-     */
-    public static <D> EngineIOPacket<D> of(Type type, D data) {
-        return new EngineIOPacket<>(type, data);
-    }
-
-    /**
-     * 创建指定类型的空包（无数据）
-     *
-     * @param type 数据包类型
-     * @param <D>  数据类型
-     * @return EngineIOPacket 实例
-     */
-    public static <D> EngineIOPacket<D> of(Type type) {
-        return new EngineIOPacket<>(type, null);
-    }
-
-    /**
-     * 创建 MESSAGE 类型的消息包
-     *
-     * @param data 消息数据
-     * @param <D>  数据类型
-     * @return MESSAGE 类型的 EngineIOPacket 实例
-     */
-    public static <D> EngineIOPacket<D> of(D data) {
-        return new EngineIOPacket<>(Type.MESSAGE, data);
-    }
-
-    /**
-     * 从字节数组创建数据包
+     * 根据字节数组解析并构建数据包
      *
      * <p>解析规则：
      * <ul>
@@ -75,20 +38,21 @@ public final class EngineIOPacket<T> {
      *   <li>其他：整个字节数组作为 MESSAGE 类型数据</li>
      * </ul>
      *
-     * @param byteData 字节数据
-     * @param dataType 数据类型
-     * @return EngineIOPacket 实例
+     * @param byteData 原始字节数据
+     * @param dataType 数据类型标识
+     * @return 解析后的数据包实例
      */
     public static EngineIOPacket<?> fromBytes(byte[] byteData, DataType dataType) {
+        Builder<?> builder = EngineIOPacket.builder();
         if (byteData == null || byteData.length == 0) {
-            return of(Type.MESSAGE, null);
+            return builder.build();
         }
 
         int firstInt = byteData[0] & 0xFF;
 
         if (firstInt == 'b') {
             byte[] data = Base64.getDecoder().decode(new String(byteData, 1, byteData.length - 1));
-            return of(data);
+            return builder.data(data).build();
         }
 
         if (firstInt >= (Type.OPEN.getStringByte() & 0xFF) && firstInt <= (Type.NOOP.getStringByte() & 0xFF)) {
@@ -96,18 +60,18 @@ public final class EngineIOPacket<T> {
             if (byteData.length > 1) {
                 byte[] data = new byte[byteData.length - 1];
                 System.arraycopy(byteData, 1, data, 0, data.length);
-                return of(type, data);
+                return builder.type(type).data(data).build();
             }
-            return of(type);
+            return builder.type(type).build();
         }
 
-        return of(byteData);
+        return builder.data(byteData).build();
     }
 
     /**
-     * 获取数据包数据
+     * 获取数据包负载数据
      *
-     * @return 数据
+     * @return 负载数据，无数据时返回 null
      */
     public T getData() {
         return data;
@@ -116,56 +80,69 @@ public final class EngineIOPacket<T> {
     /**
      * 获取数据包类型
      *
-     * @return 数据包类型枚举
+     * @return 数据包类型枚举值
      */
     public Type getType() {
         return type;
     }
 
     /**
-     * Engine.IO v4 数据包类型枚举
+     * 创建数据包构建器
      *
-     * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">官方协议文档</a>
+     * @param <D> 负载数据类型
+     * @return 新的 Builder 实例，默认类型为 MESSAGE
+     */
+    public static <D> Builder<D> builder() {
+        return new Builder<>();
+    }
+
+    /**
+     * Engine.IO 协议数据包类型枚举
+     *
+     * <p>定义了 Engine.IO 协议中所有标准数据包类型，
+     * 每个类型包含编码值、名称及用途说明</p>
+     *
+     * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">Engine.IO 官方协议文档</a>
      */
     public enum Type {
         /**
-         * 握手包
+         * 握手包，用于连接建立时的协议协商
          */
         OPEN(0, "open", "握手阶段使用"),
 
         /**
-         * 关闭传输包
+         * 关闭传输包，通知对端准备关闭连接
          */
         CLOSE(1, "close", "标识传输可关闭"),
 
         /**
-         * 心跳请求包
+         * 心跳请求包，服务端发送用于检测连接存活
          */
         PING(2, "ping", "心跳机制-服务端发送"),
 
         /**
-         * 心跳响应包
+         * 心跳响应包，客户端回复以确认连接正常
          */
         PONG(3, "pong", "心跳机制-客户端回复"),
 
         /**
-         * 业务消息包
+         * 业务消息包，承载实际传输的数据负载
          */
         MESSAGE(4, "message", "传输业务负载数据"),
 
         /**
-         * 传输升级包
+         * 传输升级包，用于传输层协议升级协商
          */
         UPGRADE(5, "upgrade", "传输升级流程"),
 
         /**
-         * 空操作包（升级清理）
+         * 空操作包，升级完成后清理长轮询资源
          */
         NOOP(6, "noop", "升级流程-清理长轮询");
 
 
         /**
-         * 数据包类型编码
+         * 数据包类型编码值
          */
         private final int code;
 
@@ -175,16 +152,16 @@ public final class EngineIOPacket<T> {
         private final String name;
 
         /**
-         * 用途说明
+         * 类型用途说明
          */
         private final String description;
 
         /**
-         * 构造函数
+         * 构造数据包类型枚举实例
          *
-         * @param code        数据包类型编码
-         * @param name        数据包类型名称
-         * @param description 用途说明
+         * @param code        类型编码值（0-6）
+         * @param name        类型名称字符串
+         * @param description 类型用途描述
          */
         Type(int code, String name, String description) {
             this.code = code;
@@ -193,18 +170,18 @@ public final class EngineIOPacket<T> {
         }
 
         /**
-         * 获取数据包类型编码
+         * 获取数据包类型编码值
          *
-         * @return 数据包类型对应的整数值
+         * @return 类型对应的整数编码
          */
         public int getCode() {
             return code;
         }
 
         /**
-         * 获取数据包类型描述
+         * 获取数据包类型用途描述
          *
-         * @return 数据包类型的用途说明
+         * @return 类型的用途说明文本
          */
         public String getDescription() {
             return description;
@@ -213,7 +190,7 @@ public final class EngineIOPacket<T> {
         /**
          * 获取数据包类型名称
          *
-         * @return 数据包类型名称
+         * @return 类型名称字符串
          */
         public String getName() {
             return name;
@@ -242,6 +219,8 @@ public final class EngineIOPacket<T> {
         /**
          * 转换为字符串字节
          *
+         * <p>将编码值加上 '0' 得到对应的 ASCII 字符字节</p>
+         *
          * @return 字符串字节值
          */
         public byte getStringByte() {
@@ -249,10 +228,11 @@ public final class EngineIOPacket<T> {
         }
 
         /**
-         * 从字节值转换为 PacketType
+         * 从字节值解析对应的数据包类型
          *
-         * @param b 字节值
-         * @return 对应的 PacketType 枚举值
+         * @param b 字节值（ASCII 字符，如 '0', '4'）
+         * @return 对应的 Type 枚举值
+         * @throws ArrayIndexOutOfBoundsException 当字节值无效时
          */
         public static Type fromByte(byte b) {
             int index = b - '0';
@@ -260,6 +240,61 @@ public final class EngineIOPacket<T> {
                 throw new ArrayIndexOutOfBoundsException("Invalid packet type byte: " + b);
             }
             return values()[index];
+        }
+    }
+
+    /**
+     * 数据包构建器
+     *
+     * <p>使用建造者模式创建 {@link EngineIOPacket} 实例，
+     * 默认数据包类型为 MESSAGE</p>
+     *
+     * @param <D> 负载数据类型
+     */
+    public static class Builder<D> {
+        private Type type;
+        private D data;
+
+        /**
+         * 初始化构建器，默认类型为 MESSAGE
+         */
+        public Builder() {
+            this.type = Type.MESSAGE;
+        }
+
+        /**
+         * 设置数据包类型
+         *
+         * @param type 数据包类型枚举值
+         * @return 当前构建器实例
+         */
+        public Builder<D> type(Type type) {
+            this.type = type;
+            return this;
+        }
+
+        /**
+         * 设置数据包负载数据
+         *
+         * <p>支持链式调用，返回泛型化的构建器实例</p>
+         *
+         * @param <T> 负载数据类型
+         * @param data 负载数据
+         * @return 泛型化后的构建器实例
+         */
+        @SuppressWarnings("unchecked")
+        public <T> Builder<T> data(T data) {
+            this.data = (D) data;
+            return (Builder<T>) this;
+        }
+
+        /**
+         * 构建数据包实例
+         *
+         * @return 完整的 EngineIOPacket 实例
+         */
+        public EngineIOPacket<D> build() {
+            return new EngineIOPacket<>(this);
         }
     }
 }
