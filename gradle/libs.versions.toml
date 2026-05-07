@@ -13,7 +13,7 @@ quarkus = "3.30.6"
 micronaut = "4.10.2"
 
 # Feature versions
-redisson = "4.1.0"
+redisson = "4.3.1"
 hazelcast = "5.2.5"
 nats = "2.25.1"
 kafka = "4.1.1"
