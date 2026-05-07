@@ -6,14 +6,12 @@ import com.ccl.socketio.server.config.ServerOptions;
 import com.ccl.socketio.server.handler.BusinessEventHandler;
 import com.ccl.socketio.server.handler.GlobalExceptionHandler;
 import com.ccl.socketio.server.listener.SocketIOListener;
-import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
-import com.ccl.socketio.core.namespace.Namespace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SocketIOServer {
 
-    private static final Logger logger = LoggerFactory.getLogger(SocketIOServer.class);
+    private static final Logger log = LoggerFactory.getLogger(SocketIOServer.class);
 
     private final SocketIOBootstrap bootstrap;
     private final ServerConfig config;
@@ -30,16 +28,17 @@ public class SocketIOServer {
     public void start() {
         try {
             bootstrap.start();
-            logger.info("Socket.IO server started on port {}", config.getOptions().getPort());
+            log.info("Socket.IO server started on port {}", config.getOptions().getPort());
         } catch (InterruptedException e) {
-            logger.error("Failed to start server", e);
+            log.error("Failed to start server", e);
             Thread.currentThread().interrupt();
         }
     }
 
+
     public void stop() {
         bootstrap.stop();
-        logger.info("Socket.IO server stopped");
+        log.info("Socket.IO server stopped");
     }
 
     public SocketIOServer setListener(SocketIOListener listener) {
