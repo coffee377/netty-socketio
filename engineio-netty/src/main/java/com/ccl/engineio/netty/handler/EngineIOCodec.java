@@ -9,10 +9,16 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * Engine.IO 编解码器
@@ -40,41 +46,23 @@ public class EngineIOCodec extends ChannelDuplexHandler {
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        log.info("EngineIOCodec read");
-        byte[] bytes;
-        if (msg instanceof ByteBuf) {
-            ByteBuf byteBuf = (ByteBuf) msg;
-            bytes = new byte[byteBuf.readableBytes()];
-            byteBuf.getBytes(byteBuf.readerIndex(), bytes);
-            byteBuf.release();
-        } else if (msg instanceof TextWebSocketFrame) {
-            TextWebSocketFrame frame = (TextWebSocketFrame) msg;
-            bytes = new byte[frame.content().readableBytes()];
-            frame.content().getBytes(frame.content().readerIndex(), bytes, 0, bytes.length);
-        } else if (msg instanceof BinaryWebSocketFrame) {
-            BinaryWebSocketFrame frame = (BinaryWebSocketFrame) msg;
-            bytes = new byte[frame.content().readableBytes()];
-            frame.content().getBytes(frame.content().readerIndex(), bytes);
-        } else if (msg instanceof EngineIOPacket) {
-            ctx.fireChannelRead(msg);
-            return;
-        } else {
+        if (!(msg instanceof EngineIOPacket)) {
             super.channelRead(ctx, msg);
             return;
         }
 
-        EngineIOPacket<?> packet = parser.decodePacket(bytes, DataType.PLAINTEXT);
+        log.info("EngineIOCodec read");
+
+        @SuppressWarnings("unchecked")
+        EngineIOPacket<ByteBuf> packet = (EngineIOPacket<ByteBuf>) msg;
         String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (packet == null) {
-            return;
-        }
 
         switch (packet.getType()) {
             case PING:
                 if (log.isDebugEnabled()) {
                     log.debug("Received PING from client: {}", ctx.channel().remoteAddress());
                 }
-                EngineIOPacket<Void> pongPacket = EngineIOPacket.of(EngineIOPacket.Type.PONG);
+                EngineIOPacket<?> pongPacket = EngineIOPacket.builder().type(EngineIOPacket.Type.PONG).build();
                 ctx.channel().writeAndFlush(pongPacket);
                 if (sessionId != null) {
                     sessionManager.updatePingTime(sessionId);
@@ -92,13 +80,22 @@ public class EngineIOCodec extends ChannelDuplexHandler {
                 ctx.close();
                 break;
             case MESSAGE:
+                if (log.isDebugEnabled()) {
+                    log.debug("Received MESSAGE {} from session: {}", packet.getData().toString(CharsetUtil.UTF_8), sessionId);
+                }
+                EngineIOPacket<String> p = EngineIOPacket.builder()
+                        .data(String.format("0{\"sid\":\"%s\"}", sessionId))
+                        .build();
+                ctx.channel().writeAndFlush(p);
+                break;
             case UPGRADE:
             case NOOP:
             case OPEN:
                 if (log.isDebugEnabled()) {
                     log.debug("EngineIO In: {}", packet.getType());
                 }
-                ctx.fireChannelRead(packet);
+//                ctx.writeAndFlush(packet);
+//                ctx.fireChannelRead(packet);
                 break;
             default:
                 if (log.isDebugEnabled()) {
@@ -111,8 +108,8 @@ public class EngineIOCodec extends ChannelDuplexHandler {
     /**
      * 出站：编码 EngineIOPacket -> ByteBuf/WebSocketFrame。
      *
-     * @param ctx    通道上下文
-     * @param msg    出站消息
+     * @param ctx     通道上下文
+     * @param msg     出站消息
      * @param promise 通道操作承诺
      * @throws Exception 处理异常
      */
@@ -123,14 +120,19 @@ public class EngineIOCodec extends ChannelDuplexHandler {
             return;
         }
         EngineIOPacket<?> packet = (EngineIOPacket<?>) msg;
-
+//        ByteBuf byteBuf = Unpooled.wrappedBuffer(encoded);
         byte[] encoded = parser.encodePacket(packet, true);
-        if (packet.getData() instanceof byte[]) {
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(encoded);
-            ctx.write(new BinaryWebSocketFrame(byteBuf), promise);
-        } else {
-            ByteBuf byteBuf = Unpooled.wrappedBuffer(encoded);
-            ctx.write(new TextWebSocketFrame(byteBuf), promise);
-        }
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+        response.content().writeBytes(encoded);
+        ctx.writeAndFlush(response);
+
+
+//        if (packet.getData() instanceof byte[]) {
+//            ByteBuf byteBuf = Unpooled.wrappedBuffer(encoded);
+//            ctx.write(new BinaryWebSocketFrame(byteBuf), promise);
+//        } else {
+//            ByteBuf byteBuf = Unpooled.wrappedBuffer(encoded);
+//            ctx.write(new TextWebSocketFrame(byteBuf), promise);
+//        }
     }
 }

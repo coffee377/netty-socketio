@@ -75,7 +75,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<WebSocketFra
         if (log.isDebugEnabled()) {
             log.debug("Message received: {}", data);
         }
-        ctx.fireChannelRead(EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, data));
+//        ctx.fireChannelRead(EngineIOPacket.of(EngineIOPacket.Type.MESSAGE, data));
     }
 
     @Override

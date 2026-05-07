@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
+        log.debug("Handshake: {}, {}", ctx.channel().remoteAddress(), req.uri());
         handleHandshake(ctx, req, "polling", null);
     }
 
@@ -97,40 +99,6 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
         return values.stream().findFirst().orElse(null);
     }
 
-//    @Override
-//    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//        if (msg instanceof FullHttpRequest) {
-//            FullHttpRequest request = (FullHttpRequest) msg;
-//            QueryStringDecoder queryDecoder = new QueryStringDecoder(request.uri());
-//
-//            String path = queryDecoder.path();
-//            if (!path.startsWith(connectPath)) {
-//                if (log.isWarnEnabled()) {
-//                    log.warn("rejecting invalid path request: {} from client: {}", path, ctx.channel().remoteAddress());
-//                }
-//                sendHttpResponse(ctx, request, HttpResponseStatus.BAD_REQUEST);
-//                return;
-//            }
-//
-//            Map<String, List<String>> parameters = queryDecoder.parameters();
-//
-//            List<String> sids = parameters.get("sid");
-//            if (sids != null && sids.get(0) != null) {
-//                ClientContext session = sessionManager.getSession(sids.get(0));
-//                session.setTransportType(TransportType.POLLING);
-//                ctx.channel().attr(ChannelAttributes.SESSION_ID).set(session.getSessionId());
-//                ctx.fireChannelRead(request);
-//                return;
-//            }
-//
-//            String transport = parameters.get("transport").stream().findFirst().orElse(null);
-//            handleHandshake(ctx, request, transport, parameters);
-//            return;
-//        }
-//
-//        super.channelRead(ctx, msg);
-//    }
-
     private void handleHandshake(ChannelHandlerContext ctx, FullHttpRequest request,
                                  String transport, Map<String, List<String>> params) {
         TransportType transportType = TransportType.of(transport);
@@ -152,23 +120,20 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
                     ctx.channel().remoteAddress(), clientContext.getSessionId());
         }
 
-        if (TransportType.WEBSOCKET.equals(transportType)) {
-            handshake(ctx, clientContext.getSessionId(), request.uri(), request);
-        } else if (TransportType.POLLING.equals(transportType)) {
-            OpenData openData = new OpenData();
-            openData.setSid(clientContext.getSessionId());
-            List<String> upgrades = Collections.singletonList(TransportType.WEBSOCKET.getName());
-            upgrades = Collections.emptyList();
-            openData.setUpgrades(upgrades);
-            openData.setPingInterval((int) sessionManager.getPingInterval());
-            openData.setPingTimeout((int) sessionManager.getPingTimeout());
-            openData.setMaxPayload(maxFramePayloadLength);
+        if (TransportType.POLLING.equals(transportType)) {
+            OpenData.Builder builder = OpenData.builder(clientContext.getSessionId())
+                    .pingInterval(Duration.ofMillis(sessionManager.getPingInterval()))
+                    .pingTimeout(Duration.ofMillis(sessionManager.getPingTimeout()))
+                    .maxPayload(maxFramePayloadLength);
 
+            // builder.upgrade(TransportType.WEBSOCKET);
+
+            OpenData openData = builder.build();
+//            EngineIOPacket<OpenData> openPacket = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(openData).build();
             EngineIOPacket<String> packet;
-
             try {
                 String json = OBJECT_MAPPER.writeValueAsString(openData);
-                packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
+                packet = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(json).build();
             } catch (JsonProcessingException e) {
                 log.error("Failed to serialize OpenData", e);
                 sendHttpResponse(ctx, request, HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -190,8 +155,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
             response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
             addCorsHeaders(response);
 
-            ctx.writeAndFlush(response);
-//                    .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
         }
 
     }
@@ -294,7 +258,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
     }
 
     private void sendClosePacket(ChannelHandlerContext ctx, FullHttpRequest request) {
-        EngineIOPacket<String> packet = EngineIOPacket.of(EngineIOPacket.Type.CLOSE);
+        EngineIOPacket<String> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.CLOSE).data("").build();
         byte[] bytes = parser.encodePacket(packet, false);
         ByteBuf buf = Unpooled.wrappedBuffer(bytes);
         FullHttpResponse response = new DefaultFullHttpResponse(
@@ -312,17 +276,18 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
             return;
         }
 
-        OpenData openData = new OpenData();
-        openData.setSid(sessionId);
-        openData.setUpgrades(Collections.singletonList(TransportType.WEBSOCKET.getName()));
-        openData.setPingInterval((int) sessionManager.getPingInterval());
-        openData.setPingTimeout((int) sessionManager.getPingTimeout());
-        openData.setMaxPayload(maxFramePayloadLength);
+        OpenData openData = null;
+//        = new OpenData();
+//        openData.setSid(sessionId);
+//        openData.setUpgrades(Collections.singletonList(TransportType.WEBSOCKET.getName()));
+//        openData.setPingInterval((int) sessionManager.getPingInterval());
+//        openData.setPingTimeout((int) sessionManager.getPingTimeout());
+//        openData.setMaxPayload(maxFramePayloadLength);
 
         EngineIOPacket<String> packet;
         try {
             String json = OBJECT_MAPPER.writeValueAsString(openData);
-            packet = EngineIOPacket.of(EngineIOPacket.Type.OPEN, json);
+            packet = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(json).build();
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize OpenData", e);
             return;

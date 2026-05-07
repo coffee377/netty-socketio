@@ -43,7 +43,7 @@ public class EngineIOHeartbeatHandler extends IdleStateHandler {
     }
 
     private void sendPing(ChannelHandlerContext ctx) {
-        EngineIOPacket<?> pingPacket = EngineIOPacket.of(EngineIOPacket.Type.PING);
+        EngineIOPacket<?> pingPacket = EngineIOPacket.builder().type(EngineIOPacket.Type.PING).build();
         ctx.writeAndFlush(pingPacket);
     }
 

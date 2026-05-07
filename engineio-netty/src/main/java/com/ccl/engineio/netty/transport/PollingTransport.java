@@ -1,10 +1,8 @@
 package com.ccl.engineio.netty.transport;
 
 import com.ccl.engineio.core.entity.ClientContext;
-import com.ccl.engineio.exception.SessionNotFoundException;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
-import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.core.session.SessionManager;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
 import io.netty.buffer.ByteBuf;
@@ -26,8 +24,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
-
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * Engine.IO HTTP 长轮询（Polling）传输处理器
@@ -124,25 +120,41 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     private void handlePost(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
         ByteBuf content = request.content();
-
+        if (log.isDebugEnabled()) {
+            log.debug("Polling POST {} => {}", request.uri(), content.toString(StandardCharsets.UTF_8));
+        }
         // FullHttpRequest is reference-counted and can be released by upstream.
         // Retain the content since we pass it further down the pipeline.
-        content = content.retain();
-
-        log.info("Polling POST {} => {}", origin, content.toString(StandardCharsets.UTF_8));
-        // int readableBytes = content.readableBytes();
+        // content = content.retain();
 
         // 1. 立即响应 HTTP 200（符合 Polling 协议）
         sendSuccessResponse(ctx, "ok", origin);
 
         // 2. 解析 POST 数据包（请求体）
-        String packet = content.toString(CharsetUtil.UTF_8);
+        EngineIOPacket<ByteBuf> packet = decodePacket(content);
 
         // 3. 执行业务逻辑（自定义处理 EngineIO 数据包）
-        processEngineIOPacket(sessionId, packet);
+        processEngineIOPacket(ctx, sessionId, packet);
 
         // 4. 若有新消息，唤醒挂起的 GET 请求
         wakeupPendingGet(sessionId, origin);
+    }
+
+    private EngineIOPacket<ByteBuf> decodePacket(ByteBuf content) {
+        final int separatorPos = content.bytesBefore((byte) 0x1E);
+        final ByteBuf packetBuf;
+        if (separatorPos > 0) {
+            // Multiple packets in one, copy out the next packet to parse
+            packetBuf = content.copy(content.readerIndex(), separatorPos);
+            content.skipBytes(separatorPos + 1);
+        } else {
+            packetBuf = content;
+        }
+
+        EngineIOPacket.Type type = EngineIOPacket.Type.fromByte(packetBuf.readByte());
+        EngineIOPacket<ByteBuf> packet = EngineIOPacket.builder().type(type).data(packetBuf).build();
+
+        return packet;
     }
 
     // 唤醒挂起的 GET：发送待发消息
@@ -160,9 +172,11 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     // 处理 EngineIO 业务数据包（自定义实现）
-    private void processEngineIOPacket(String sessionId, String packet) {
+    private void processEngineIOPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<ByteBuf> packet) {
         // 你的业务逻辑：解析消息、存储、转发等
-        log.warn("Session[{}] 收到 POST 数据包：{}", sessionId, packet);
+        log.warn("Session[{}] 收到 POST 数据包：{} {}", sessionId, packet.getType(), packet.getData().toString(CharsetUtil.UTF_8));
+        ctx.fireChannelRead(packet);
+
     }
 
     private void addOriginHeaders(String origin, HttpResponse res) {
@@ -175,7 +189,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     private void handleGet(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
-        log.info("Polling GET {} => {}", origin, request.content().toString(StandardCharsets.UTF_8));
+        log.info("Polling GET {} => {}", origin + request.uri(), request.content().toString(StandardCharsets.UTF_8));
         // 1. 获取当前 Session 的待发送消息
         Queue<String> pendingMessages = sessionPendingMessages.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
         String message = pendingMessages.poll();
@@ -230,7 +244,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
                 if (log.isDebugEnabled()) {
                     log.debug("Polling PING received from session: {}", sessionId);
                 }
-                EngineIOPacket<Void> pongPacket = EngineIOPacket.of(EngineIOPacket.Type.PONG);
+                EngineIOPacket<String> pongPacket = EngineIOPacket.builder().type(EngineIOPacket.Type.PONG).data("").build();
                 queuePacket(sessionId, pongPacket);
                 sessionManager.updatePingTime(sessionId);
                 return;
@@ -276,21 +290,6 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     private ConcurrentLinkedQueue<PendingRequest> getPendingQueue(String sessionId) {
         return PENDING_GETS.computeIfAbsent(sessionId, key -> new ConcurrentLinkedQueue<>());
-    }
-
-    private boolean tryDrainPackets(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId)
-            throws Exception {
-        if (shouldPing(sessionId)) {
-            queuePacket(sessionId, EngineIOPacket.of(EngineIOPacket.Type.PING));
-        }
-
-        ConcurrentLinkedQueue<EngineIOPacket<?>> buffer = OUTPUT_BUFFER.get(sessionId);
-        if (buffer == null || buffer.isEmpty()) {
-            return false;
-        }
-
-        drainAndRespond(ctx, request, sessionId);
-        return true;
     }
 
     private void drainAndRespond(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId) {
@@ -353,14 +352,6 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
                                   HttpResponseStatus status) {
         sendHttpResponse(ctx, request, status, null);
     }
-
-    private void sendDisconnectResponse(ChannelHandlerContext ctx, FullHttpRequest request) {
-        List<EngineIOPacket<?>> packets = new ArrayList<>();
-        packets.add(EngineIOPacket.of(EngineIOPacket.Type.CLOSE));
-        sendHttpResponse(ctx, request, HttpResponseStatus.OK, packets);
-    }
-
-
 
     private void releaseRequest(FullHttpRequest request) {
         if (request != null) {
