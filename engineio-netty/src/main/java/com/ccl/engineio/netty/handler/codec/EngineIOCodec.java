@@ -1,5 +1,7 @@
 package com.ccl.engineio.netty.handler.codec;
 
+import com.ccl.engineio.core.codec.Encoder;
+import com.ccl.engineio.core.codec.impl.EngineV4Encoder;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
@@ -30,6 +32,7 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
     private final String corsOrigin;
 
     private final SocketDecoder decoder;
+    private final Encoder encoder;
 
 
     public EngineIOCodec() {
@@ -40,6 +43,39 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
         this.corsOrigin = corsOrigin;
         this.enableCors = enableCors;
         this.decoder = new SocketIODecoder();
+        this.encoder = new EngineV4Encoder();
+    }
+
+    @Override
+    protected void encode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
+        EngineIOPacket.Type type = msg.getType();
+        if (log.isDebugEnabled()) {
+            log.debug("OUT[{}] {}", type, msg);
+        }
+        switch (type) {
+            case OPEN:
+                sendOpenData(ctx, msg, out);
+                return;
+            case CLOSE:
+            case PING:
+            case PONG:
+            case MESSAGE:
+                sendMessage(ctx, msg, out);
+                break;
+            case UPGRADE:
+            case NOOP:
+        }
+    }
+
+    private void sendMessage(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) {
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
+        response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+        addCorsHeaders(response);
+        // websocket binary
+        byte[] bytes = encoder.encodePacket(msg, false);
+        response.content().writeBytes(bytes);
+        out.add(response);
     }
 
     @Override
@@ -47,7 +83,7 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
         EngineIOPacket.Type type = msg.getType();
         String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
         if (log.isDebugEnabled()) {
-            log.debug("Received {} packet from session {}", type, sid);
+            log.debug("IN[{}] {}", type, msg);
         }
         switch (type) {
             case OPEN:
@@ -67,11 +103,8 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
                 } else if (data instanceof byte[]) {
                     raw = new String((byte[]) data, StandardCharsets.UTF_8);
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("Received data: {}", raw);
-                }
                 SocketPacket<?> socketPacket = decoder.decode(raw);
-                if (socketPacket != null) {
+                if (socketPacket != null && socketPacket.isAttachmentsLoaded()) {
                     out.add(socketPacket);
                 }
                 break;
@@ -80,56 +113,9 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
         }
     }
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
-        EngineIOPacket.Type type = msg.getType();
-        if (log.isDebugEnabled()) {
-            log.debug("EngineIOCodec encode msg type:{}, msg:{}", type, msg);
-        }
-        switch (type) {
-            case OPEN:
-                log.debug(EngineIOPacket.Type.OPEN.getDescription());
-                sendOpenData(ctx, msg, out);
-                return;
-            case CLOSE:
-                log.debug(EngineIOPacket.Type.CLOSE.getDescription());
-                break;
-            case PING:
-                log.debug(EngineIOPacket.Type.PING.getDescription());
-                break;
-            case PONG:
-                log.debug(EngineIOPacket.Type.PONG.getDescription());
-                break;
-            case MESSAGE:
-                log.debug(EngineIOPacket.Type.MESSAGE.getDescription());
-                break;
-            case UPGRADE:
-                log.debug(EngineIOPacket.Type.UPGRADE.getDescription());
-                break;
-            case NOOP:
-                log.debug(EngineIOPacket.Type.NOOP.getDescription());
-                break;
-        }
-    }
-
     private void sendOpenData(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) {
-        EngineIOPacket<String> packet;
-        try {
-            String json = OBJECT_MAPPER.writeValueAsString(msg.getData());
-            packet = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(json).build();
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize OpenData", e);
-            FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST);
-//            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-            out.add(response);
-            return;
-        }
-
-        byte[] bytes = ParserV4.getInstance().encodePacket(packet, true);
+        byte[] bytes = encoder.encodePacket(msg, false);
         ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
-        if (log.isDebugEnabled()) {
-            log.debug("{}", byteBuf.toString(StandardCharsets.UTF_8));
-        }
         FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, byteBuf);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
         response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");

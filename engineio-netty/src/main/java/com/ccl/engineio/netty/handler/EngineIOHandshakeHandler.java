@@ -52,9 +52,6 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest req) throws Exception {
-        if (log.isDebugEnabled()) {
-            log.debug("Handshake: {}, {}", ctx.channel().remoteAddress(), req.uri());
-        }
         handleHandshake(ctx, req);
     }
 
@@ -89,7 +86,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
         }
         ctx.channel().attr(ChannelAttributes.SESSION_ID).set(clientContext.getSessionId());
         if (log.isDebugEnabled()) {
-            log.debug("Handshake successful for client: {} with session: {}",
+            log.debug("Handshake {} successful for client {} with session id {}", request.uri(),
                     ctx.channel().remoteAddress(), clientContext.getSessionId());
         }
 
@@ -97,6 +94,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
                 .pingInterval(Duration.ofMillis(sessionManager.getPingInterval()))
                 .pingTimeout(Duration.ofMillis(sessionManager.getPingTimeout()))
                 .maxPayload(maxFramePayloadLength);
+        // TODO: 2026/05/08 22:08 从配置获取可升级的传输方式
         // builder.upgrade(TransportType.WEBSOCKET);
 
         OpenData openData = builder.build();
