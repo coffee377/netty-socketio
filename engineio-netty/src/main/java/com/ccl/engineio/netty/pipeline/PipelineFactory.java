@@ -35,28 +35,5 @@ public class PipelineFactory extends ChannelInitializer<Channel> {
     @Override
     protected void initChannel(Channel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
-
-        // --- HTTP ---
-        HttpServerCodec httpServerCodec = new HttpServerCodec();
-        pipeline.addLast("httpCodec", httpServerCodec);
-        pipeline.addLast("httpAggregator", new HttpObjectAggregator(maxFramePayloadLength));
-
-        // --- Engine.IO 握手 + Session 创建 ---
-        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler(connectPath, maxFramePayloadLength));
-
-        // --- Engine.IO WebSocket 升级 ---
-        pipeline.addLast("wsUpgrade", new EngineIOUpgradeHandler(httpServerCodec));
-
-        // --- Engine.IO Polling ---
-        pipeline.addLast("polling", new PollingTransport());
-
-        // --- Engine.IO 编解码 ---
-        pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
-
-        // --- Engine.IO 心跳 ---
-        pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
-
-        // --- Engine.IO Session 生命周期 ---
-        pipeline.addLast("engineSession", new EngineIOSessionHandler());
     }
 }

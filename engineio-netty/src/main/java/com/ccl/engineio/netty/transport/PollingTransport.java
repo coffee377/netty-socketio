@@ -2,6 +2,7 @@ package com.ccl.engineio.netty.transport;
 
 import com.ccl.engineio.core.entity.ClientContext;
 import com.ccl.engineio.core.parser.ParserV4;
+import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.session.SessionManager;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
@@ -47,12 +48,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     private static final long POST_TIMEOUT = 60_000L;
 
     // 核心：Session -> 挂起的 GET 请求队列（线程安全）
-    private final ConcurrentHashMap<String, Queue<PendingRequest>> sessionPendingGets = new ConcurrentHashMap<>();
+    // private final ConcurrentHashMap<String, Queue<PendingRequest>> sessionPendingGets = new ConcurrentHashMap<>();
     // 可选：每个 Session 待发送的消息队列（无消息时 GET 才会悬挂）
-    private final ConcurrentHashMap<String, Queue<String>> sessionPendingMessages = new ConcurrentHashMap<>();
+    // private final ConcurrentHashMap<String, Queue<String>> sessionPendingMessages = new ConcurrentHashMap<>();
 
-    private static final ConcurrentHashMap<String, ConcurrentLinkedQueue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, ConcurrentLinkedQueue<EngineIOPacket<?>>> OUTPUT_BUFFER = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Queue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Queue<EngineIOPacket<?>>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
 
     private final ParserV4 parser;
     private final SessionManager sessionManager;
@@ -131,7 +132,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         sendSuccessResponse(ctx, "ok", origin);
 
         // 2. 解析 POST 数据包（请求体）
-        EngineIOPacket<ByteBuf> packet = decodePacket(content);
+        EngineIOPacket<?> packet = decodePacket(content, DataType.PLAINTEXT);
 
         // 3. 执行业务逻辑（自定义处理 EngineIO 数据包）
         processEngineIOPacket(ctx, sessionId, packet);
@@ -140,7 +141,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         wakeupPendingGet(sessionId, origin);
     }
 
-    private EngineIOPacket<ByteBuf> decodePacket(ByteBuf content) {
+    private EngineIOPacket<?> decodePacket(ByteBuf content, DataType dataType) {
         final int separatorPos = content.bytesBefore((byte) 0x1E);
         final ByteBuf packetBuf;
         if (separatorPos > 0) {
@@ -152,31 +153,31 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         }
 
         EngineIOPacket.Type type = EngineIOPacket.Type.fromByte(packetBuf.readByte());
-        EngineIOPacket<ByteBuf> packet = EngineIOPacket.builder().type(type).data(packetBuf).build();
-
-        return packet;
+        if (DataType.PLAINTEXT.equals(dataType)) {
+            return EngineIOPacket.builder().type(type).data(packetBuf.toString(CharsetUtil.UTF_8)).build();
+        }
+        return EngineIOPacket.builder().type(type).data(packetBuf).build();
     }
 
     // 唤醒挂起的 GET：发送待发消息
     private void wakeupPendingGet(String sessionId, String origin) {
-        Queue<PendingRequest> pendingGets = sessionPendingGets.get(sessionId);
-        Queue<String> pendingMessages = sessionPendingMessages.get(sessionId);
+        Queue<PendingRequest> pendingGets = PENDING_GETS.get(sessionId);
+        Queue<EngineIOPacket<?>> pendingMessages = OUTPUT_PACKETS.get(sessionId);
         if (pendingGets == null || pendingGets.isEmpty() || pendingMessages == null || pendingMessages.isEmpty()) {
             return;
         }
 
         PendingRequest pendingGet = pendingGets.poll();
-        String message = pendingMessages.poll();
-        sendSuccessResponse(pendingGet.getCtx(), message, origin);
+        EngineIOPacket<?> message = pendingMessages.poll();
+        pendingGet.getCtx().channel().writeAndFlush(message);
         pendingGet.getPromise().setSuccess();
     }
 
     // 处理 EngineIO 业务数据包（自定义实现）
-    private void processEngineIOPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<ByteBuf> packet) {
+    private void processEngineIOPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<?> packet) {
         // 你的业务逻辑：解析消息、存储、转发等
-        log.warn("Session[{}] 收到 POST 数据包：{} {}", sessionId, packet.getType(), packet.getData().toString(CharsetUtil.UTF_8));
+        log.warn("Session[{}] 收到 POST 数据包：{} {}", sessionId, packet.getType(), packet.getData());
         ctx.fireChannelRead(packet);
-
     }
 
     private void addOriginHeaders(String origin, HttpResponse res) {
@@ -191,12 +192,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     private void handleGet(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
         log.info("Polling GET {} => {}", origin + request.uri(), request.content().toString(StandardCharsets.UTF_8));
         // 1. 获取当前 Session 的待发送消息
-        Queue<String> pendingMessages = sessionPendingMessages.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
-        String message = pendingMessages.poll();
+        Queue<EngineIOPacket<?>> pendingMessages = OUTPUT_PACKETS.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
+        EngineIOPacket<?> message = pendingMessages.poll();
 
         // 2. 有消息：立即响应，不悬挂
         if (message != null) {
-            sendSuccessResponse(ctx, message, origin);
+            ctx.channel().writeAndFlush(message);
             return;
         }
 
@@ -210,7 +211,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
         // 3.3 封装 PendingGet 并加入队列
         PendingRequest pendingGet = new PendingRequest(ctx, promise, timeoutTask, sessionId);
-        Queue<PendingRequest> queue = sessionPendingGets.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
+        Queue<PendingRequest> queue = PENDING_GETS.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
         queue.offer(pendingGet);
 
         // 3.4 Promise 完成时关闭连接（长轮询单次请求结束）
@@ -225,48 +226,17 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     // GET 超时回调：响应空包
     private void onPendingGetTimeout(String sessionId, String origin) {
-        Queue<PendingRequest> queue = sessionPendingGets.get(sessionId);
+        Queue<PendingRequest> queue = PENDING_GETS.get(sessionId);
         if (queue == null || queue.isEmpty()) return;
 
         PendingRequest pendingGet = queue.poll();
-        // 超时返回空响应
+        // TODO: 2026/05/08 16:19 超时返回空响应
         sendSuccessResponse(pendingGet.getCtx(), "", origin);
         pendingGet.getPromise().setSuccess();
     }
 
     private void handleOptions(ChannelHandlerContext ctx, FullHttpRequest request, String sid) {
         // TODO: 2026/04/29 21:28 handleOptions
-    }
-
-    private void processPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<?> packet) {
-        switch (packet.getType()) {
-            case PING:
-                if (log.isDebugEnabled()) {
-                    log.debug("Polling PING received from session: {}", sessionId);
-                }
-                EngineIOPacket<String> pongPacket = EngineIOPacket.builder().type(EngineIOPacket.Type.PONG).data("").build();
-                queuePacket(sessionId, pongPacket);
-                sessionManager.updatePingTime(sessionId);
-                return;
-
-            case PONG:
-                if (log.isDebugEnabled()) {
-                    log.debug("Polling PONG received from session: {}", sessionId);
-                }
-                sessionManager.updatePingTime(sessionId);
-                return;
-
-            case CLOSE:
-                if (log.isDebugEnabled()) {
-                    log.debug("Polling CLOSE received from session: {}", sessionId);
-                }
-                queuePacket(sessionId, packet);
-                ctx.fireChannelRead(packet);
-                return;
-
-            default:
-                ctx.fireChannelRead(packet);
-        }
     }
 
     @Override
@@ -280,51 +250,6 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         log.error("Exception in polling handler for session: {}",
                 ctx.channel().attr(ChannelAttributes.SESSION_ID).get(), cause);
         ctx.close();
-    }
-
-    private void queuePacket(String sessionId, EngineIOPacket<?> packet) {
-        ConcurrentLinkedQueue<EngineIOPacket<?>> buffer = OUTPUT_BUFFER.computeIfAbsent(sessionId,
-                key -> new ConcurrentLinkedQueue<>());
-        buffer.add(packet);
-    }
-
-    private ConcurrentLinkedQueue<PendingRequest> getPendingQueue(String sessionId) {
-        return PENDING_GETS.computeIfAbsent(sessionId, key -> new ConcurrentLinkedQueue<>());
-    }
-
-    private void drainAndRespond(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId) {
-        ConcurrentLinkedQueue<EngineIOPacket<?>> buffer = OUTPUT_BUFFER.get(sessionId);
-        List<EngineIOPacket<?>> packets = new ArrayList<>();
-        if (buffer != null) {
-            EngineIOPacket<?> packet;
-            while ((packet = buffer.poll()) != null) {
-                packets.add(packet);
-            }
-            if (buffer.isEmpty()) {
-                OUTPUT_BUFFER.remove(sessionId);
-            }
-        }
-
-        sendHttpResponse(ctx, request, HttpResponseStatus.OK, packets);
-    }
-
-    private boolean shouldPing(String sessionId) {
-        ClientContext context = sessionManager.getSession(sessionId);
-        long lastPing = context.getLastPingTime();
-        long elapsed = System.currentTimeMillis() - lastPing;
-        long interval = sessionManager.getPingInterval();
-
-        if (elapsed < interval) {
-            return false;
-        }
-
-        context.setLastPingTime(System.currentTimeMillis());
-        sessionManager.updatePingTime(sessionId);
-        return true;
-    }
-
-    private boolean isClientDisconnected(ClientContext context) {
-        return context != null && !context.isConnected();
     }
 
     private void sendHttpResponse(ChannelHandlerContext ctx, FullHttpRequest request,
