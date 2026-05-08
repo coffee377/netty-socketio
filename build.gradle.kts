@@ -25,8 +25,9 @@ subprojects {
     tasks.withType<JavaCompile>().configureEach {
         options.compilerArgs.addAll(
             listOf(
-                "-Xlint:unchecked",
-                "-Xlint:deprecation"
+                "-Xlint:-options",
+                //"-Xlint:unchecked",
+                //"-Xlint:deprecation"
             )
         )
         options.release.set(8)
