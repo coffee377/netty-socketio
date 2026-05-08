@@ -149,41 +149,37 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should decode MESSAGE packet with string payload")
         void testDecodeMessagePacket() {
-            byte[] encoded = "4hello".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("4hello", DataType.PLAINTEXT);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
-            assertArrayEquals("hello".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("hello", packet.getData());
         }
 
         @Test
         @DisplayName("Should decode PING packet")
         void testDecodePingPacket() {
-            byte[] encoded = "2probe".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("2probe", DataType.PLAINTEXT);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.PING, packet.getType());
-            assertArrayEquals("probe".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("probe", packet.getData());
         }
 
         @Test
         @DisplayName("Should decode PONG packet")
         void testDecodePongPacket() {
-            byte[] encoded = "3probe".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("3probe", DataType.PLAINTEXT);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.PONG, packet.getType());
-            assertArrayEquals("probe".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("probe", packet.getData());
         }
 
         @Test
         @DisplayName("Should decode UPGRADE packet")
         void testDecodeUpgradePacket() {
-            byte[] encoded = "5".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("5", DataType.PLAINTEXT);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.UPGRADE, packet.getType());
@@ -193,8 +189,7 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should decode NOOP packet")
         void testDecodeNoopPacket() {
-            byte[] encoded = "6".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("6", DataType.PLAINTEXT);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.NOOP, packet.getType());
@@ -204,9 +199,8 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should decode base64 encoded binary data")
         void testDecodeBase64BinaryData() {
-            byte[] encoded = "bAQIDBA==".getBytes(StandardCharsets.UTF_8);
             byte[] expectedBinary = new byte[]{0x01, 0x02, 0x03, 0x04};
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.BINARY);
+            EngineIOPacket<?> packet = parser.decodePacket("bAQIDBA==", DataType.BINARY);
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
@@ -223,10 +217,8 @@ public class ParserV4Test {
         @Test
         @DisplayName("Should handle empty data")
         void testDecodeEmptyData() {
-            byte[] encoded = new byte[0];
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
-            assertNotNull(packet);
-            assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
+            EngineIOPacket<?> packet = parser.decodePacket("", DataType.PLAINTEXT);
+            assertNull(packet);
         }
 
         @Test
@@ -236,7 +228,7 @@ public class ParserV4Test {
 
             assertNotNull(packet);
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
-            assertArrayEquals("hello".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("hello", packet.getData());
         }
     }
 
@@ -268,15 +260,17 @@ public class ParserV4Test {
         @DisplayName("Should decode multiple packets from payload")
         void testDecodePayloadMultiplePackets() {
             // 4hello\x1e2\x1e4world
-            String encoded = "4hello\u001E2\u001E4world";
+            String encoded = String.join("\u001E", "4hello", "2", "4world");
             byte[] payload = encoded.getBytes(StandardCharsets.UTF_8);
-
             List<EngineIOPacket<?>> packets = parser.decodePayload(payload, DataType.PLAINTEXT);
 
             assertEquals(3, packets.size());
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(0).getType());
+            assertEquals("hello", packets.get(0).getData());
             assertEquals(EngineIOPacket.Type.PING, packets.get(1).getType());
+            assertNull(packets.get(1).getData());
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(2).getType());
+            assertEquals("world", packets.get(2).getData());
         }
 
         @Test
@@ -331,37 +325,34 @@ public class ParserV4Test {
         @DisplayName("WebSocket frame: 4hello (message packet)")
         void testWebSocketMessageExample() {
             byte[] encoded = "4hello".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("4hello", DataType.PLAINTEXT);
 
             assertEquals(EngineIOPacket.Type.MESSAGE, packet.getType());
-            assertArrayEquals("hello".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("hello", packet.getData());
         }
 
         @Test
         @DisplayName("WebSocket frame: 2probe (ping with probe)")
         void testWebSocketPingExample() {
-            byte[] encoded = "2probe".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("2probe", DataType.PLAINTEXT);
 
             assertEquals(EngineIOPacket.Type.PING, packet.getType());
-            assertArrayEquals("probe".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("probe", packet.getData());
         }
 
         @Test
         @DisplayName("WebSocket frame: 3probe (pong with probe)")
         void testWebSocketPongExample() {
-            byte[] encoded = "3probe".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("3probe", DataType.PLAINTEXT);
 
             assertEquals(EngineIOPacket.Type.PONG, packet.getType());
-            assertArrayEquals("probe".getBytes(StandardCharsets.UTF_8), (byte[]) packet.getData());
+            assertEquals("probe", packet.getData());
         }
 
         @Test
         @DisplayName("WebSocket frame: 5 (upgrade packet)")
         void testWebSocketUpgradeExample() {
-            byte[] encoded = "5".getBytes(StandardCharsets.UTF_8);
-            EngineIOPacket<?> packet = parser.decodePacket(encoded, DataType.PLAINTEXT);
+            EngineIOPacket<?> packet = parser.decodePacket("5", DataType.PLAINTEXT);
 
             assertEquals(EngineIOPacket.Type.UPGRADE, packet.getType());
             assertNull(packet.getData());
@@ -376,13 +367,13 @@ public class ParserV4Test {
             assertEquals(3, packets.size());
 
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(0).getType());
-            assertEquals("hello", new String((byte[]) packets.get(0).getData(), StandardCharsets.UTF_8));
+            assertEquals("hello", packets.get(0).getData());
 
             assertEquals(EngineIOPacket.Type.PING, packets.get(1).getType());
             assertNull(packets.get(1).getData());
 
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(2).getType());
-            assertEquals("world", new String((byte[]) packets.get(2).getData(), StandardCharsets.UTF_8));
+            assertEquals("world", packets.get(2).getData());
         }
 
         @Test
@@ -394,7 +385,7 @@ public class ParserV4Test {
             assertEquals(2, packets.size());
 
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(0).getType());
-            assertArrayEquals("hello".getBytes(StandardCharsets.UTF_8), (byte[]) packets.get(0).getData());
+            assertEquals("hello", packets.get(0).getData());
 
             assertEquals(EngineIOPacket.Type.MESSAGE, packets.get(1).getType());
             assertArrayEquals(new byte[]{0x01, 0x02, 0x03, 0x04}, (byte[]) packets.get(1).getData());

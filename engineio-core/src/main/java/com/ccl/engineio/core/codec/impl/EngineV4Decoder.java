@@ -23,9 +23,9 @@ import java.util.List;
  *
  * <p>批量解码时使用 V4 协议记录分隔符（0x1E）分割各数据包</p>
  *
+ * @author coffee377
  * @see Decoder
  * @see EngineV4Encoder
- * @author coffee377
  * @since 4.0.0-alpha.0
  */
 public class EngineV4Decoder implements Decoder {
@@ -55,15 +55,13 @@ public class EngineV4Decoder implements Decoder {
     @Override
     public EngineIOPacket<?> decodePacket(Object data, DataType dataType) {
         if (data == null) return null;
-        byte[] bytesData;
         if (data instanceof String) {
-            bytesData = ((String) data).getBytes(StandardCharsets.UTF_8);
+            return decodeString((String) data);
         } else if (data instanceof byte[]) {
-            bytesData = (byte[]) data;
+            return fromBytes((byte[]) data, dataType);
         } else {
             throw new IllegalArgumentException("Invalid type for data: " + data.getClass().getName());
         }
-        return fromBytes(bytesData, dataType);
     }
 
     /**
@@ -79,8 +77,6 @@ public class EngineV4Decoder implements Decoder {
      */
     @Override
     public List<EngineIOPacket<?>> decodePayload(Object payload, DataType dataType) {
-        List<EngineIOPacket<?>> packets = new ArrayList<>();
-
         byte[] bytesData;
         if (payload instanceof String) {
             bytesData = ((String) payload).getBytes(StandardCharsets.UTF_8);
@@ -91,9 +87,10 @@ public class EngineV4Decoder implements Decoder {
         }
 
         List<byte[]> splitPackets = splitData(bytesData, V4_RECORD_SEPARATOR);
+        List<EngineIOPacket<?>> packets = new ArrayList<>();
         for (byte[] packetData : splitPackets) {
             if (packetData.length > 0) {
-                EngineIOPacket<?> packet = decodePacket(packetData, dataType);
+                EngineIOPacket<?> packet = decodePacket(new String(packetData, StandardCharsets.UTF_8), dataType);
                 if (packet == null) {
                     continue;
                 }
@@ -155,8 +152,6 @@ public class EngineV4Decoder implements Decoder {
      * @return 拆分后的字节数组列表（不含空片段）
      */
     private List<byte[]> splitData(byte[] data, byte sep) {
-        List<byte[]> result = new ArrayList<>();
-
         int count = 0;
         for (byte b : data) {
             if (b == sep) {
@@ -164,7 +159,7 @@ public class EngineV4Decoder implements Decoder {
             }
         }
 
-        result = new ArrayList<>(count + 1);
+        List<byte[]> result = new ArrayList<>(count + 1);
         int start = 0;
 
         for (int i = 0; i < data.length; i++) {
@@ -185,5 +180,22 @@ public class EngineV4Decoder implements Decoder {
         }
 
         return result;
+    }
+
+    protected EngineIOPacket<?> decodeString(String raw) {
+        if (raw == null || raw.isEmpty()) {
+            return null;
+        }
+
+        byte firstByte = (byte) raw.charAt(0);
+        String data = raw.substring(1);
+
+        if (firstByte == 'b') {
+            byte[] bytes = Base64.getDecoder().decode(data);
+            return EngineIOPacket.builder().data(bytes).build();
+        }
+
+        EngineIOPacket.Type type = EngineIOPacket.Type.fromByte(firstByte);
+        return EngineIOPacket.builder().type(type).data(data.isEmpty() ? null : data).build();
     }
 }

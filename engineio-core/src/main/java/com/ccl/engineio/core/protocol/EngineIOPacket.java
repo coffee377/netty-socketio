@@ -1,6 +1,7 @@
 package com.ccl.engineio.core.protocol;
 
 import java.util.Base64;
+import java.util.Optional;
 
 /**
  * Engine.IO 协议数据包封装
@@ -84,6 +85,12 @@ public final class EngineIOPacket<T> {
      */
     public Type getType() {
         return type;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%d%s", this.type.getCode(),
+                Optional.ofNullable(this.data).map(Object::toString).orElse(""));
     }
 
     /**
@@ -278,7 +285,7 @@ public final class EngineIOPacket<T> {
          *
          * <p>支持链式调用，返回泛型化的构建器实例</p>
          *
-         * @param <T> 负载数据类型
+         * @param <T>  负载数据类型
          * @param data 负载数据
          * @return 泛型化后的构建器实例
          */

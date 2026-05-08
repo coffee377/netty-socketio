@@ -43,6 +43,38 @@ public class OpenData {
      */
     private final Integer maxPayload;
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        if (sid != null) {
+            sb.append("{\"sid\":\"").append(sid).append('"');
+        }
+        sb.append(",\"upgrades\":");
+        if (upgrades == null || upgrades.isEmpty()) {
+            sb.append("[]");
+        } else {
+            sb.append('[');
+            boolean first = true;
+            for (String u : upgrades) {
+                if (first) first = false;
+                else sb.append(',');
+                sb.append('"').append(u).append('"');
+            }
+            sb.append(']');
+        }
+        if (pingInterval != null) {
+            sb.append(",\"pingInterval\":").append(pingInterval);
+        }
+        if (pingTimeout != null) {
+            sb.append(",\"pingTimeout\":").append(pingTimeout);
+        }
+        if (maxPayload != null) {
+            sb.append(",\"maxPayload\":").append(maxPayload);
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
     /**
      * 使用构建器初始化握手数据
      *
