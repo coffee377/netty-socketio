@@ -1,116 +1,147 @@
 package com.ccl.socketio.core.protocol;
 
+
+import com.ccl.engineio.core.protocol.EngineIOPacket;
+
 import java.util.List;
 
-public class SocketPacket {
-
-    private SocketPacketType type;
-    private String namespace;
+// <packet type>[<# of binary attachments>-][<namespace>,][<acknowledgment id>][JSON-stringified payload without binary]
+//
+//+ binary attachments extracted
+public class SocketPacket<T> {
+    private final Type type;
+    private final int attachmentsCount;
+    private final String namespace;
+    private final Long ackId;
     private String eventName;
-    private List<Object> data;
-    private int ackId;
-    private byte[][] binaryAttachments;
-    private boolean hasBinary;
+    private final T data;
+    private List<byte[]> attachments;
 
-    public SocketPacket(SocketPacketType type) {
-        this(type, "/");
+    private String dataSource;
+
+    private SocketPacket(Builder<T> builder) {
+        this.type = builder.type;
+        this.attachmentsCount = builder.attachmentsCount;
+        this.namespace = builder.namespace;
+        this.ackId = builder.ackId;
+        this.data = builder.data;
     }
 
-    public SocketPacket(SocketPacketType type, String namespace) {
-        this.type = type;
-        this.namespace = namespace;
+    public static <D> SocketPacket.Builder<D> builder() {
+        return new SocketPacket.Builder<>();
     }
 
-    public SocketPacketType getType() {
+    public Type getType() {
         return type;
     }
 
-    public void setType(SocketPacketType type) {
-        this.type = type;
+    public int getAttachmentsCount() {
+        return attachmentsCount;
     }
 
     public String getNamespace() {
         return namespace;
     }
 
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public Long getAckId() {
+        return ackId;
     }
 
     public String getEventName() {
         return eventName;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
-    }
-
-    public List<Object> getData() {
+    public T getData() {
         return data;
     }
 
-    public void setData(List<Object> data) {
-        this.data = data;
+    public List<byte[]> getAttachments() {
+        return attachments;
     }
 
-    public int getAckId() {
-        return ackId;
+    public String getDataSource() {
+        return dataSource;
     }
 
-    public void setAckId(int ackId) {
-        this.ackId = ackId;
+    public void addAttachment(byte[] binaryAttachment) {
+        if (this.attachments.size() < attachmentsCount) {
+            this.attachments.add(binaryAttachment);
+        }
     }
 
-    public byte[][] getBinaryAttachments() {
-        return binaryAttachments;
+    public boolean hasAttachments() {
+        return attachmentsCount != 0;
     }
 
-    public void setBinaryAttachments(byte[][] binaryAttachments) {
-        this.binaryAttachments = binaryAttachments;
-        this.hasBinary = binaryAttachments != null && binaryAttachments.length > 0;
+    public boolean isAttachmentsLoaded() {
+        return this.attachments.size() == attachmentsCount;
     }
 
-    public boolean hasBinary() {
-        return hasBinary;
+    public enum Type {
+        CONNECT(0),
+        DISCONNECT(1),
+        EVENT(2),
+        ACK(3),
+        ERROR(4),
+        BINARY_EVENT(5),
+        BINARY_ACK(6);
+
+        private final int value;
+
+        Type(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+
+        public static Type fromValue(int value) {
+            for (Type type : values()) {
+                if (type.value == value) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Unknown Socket.IO packet type: " + value);
+        }
     }
 
-    public static SocketPacket connectPacket(String namespace) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.CONNECT, namespace);
-        return packet;
+    public static class Builder<D> {
+        private Type type;
+        private int attachmentsCount;
+        private String namespace;
+        private Long ackId;
+        private D data;
+
+        public Builder<D> type(Type type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder<D> attachmentsCount(int attachmentsCount) {
+            this.attachmentsCount = attachmentsCount;
+            return this;
+        }
+
+        public Builder<D> namespace(String namespace) {
+            this.namespace = namespace;
+            return this;
+        }
+
+        public Builder<D> ackId(Long ackId) {
+            this.ackId = ackId;
+            return this;
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T> Builder<T> data(T data) {
+            this.data = (D) data;
+            return (Builder<T>) this;
+        }
+
+        public SocketPacket<D> build() {
+            return new SocketPacket<>(this);
+        }
     }
 
-    public static SocketPacket disconnectPacket(String namespace) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.DISCONNECT, namespace);
-        return packet;
-    }
-
-    public static SocketPacket eventPacket(String namespace, String eventName, List<Object> data) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.EVENT, namespace);
-        packet.setEventName(eventName);
-        packet.setData(data);
-        return packet;
-    }
-
-    public static SocketPacket ackPacket(String namespace, int ackId, List<Object> data) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.ACK, namespace);
-        packet.setAckId(ackId);
-        packet.setData(data);
-        return packet;
-    }
-
-    public static SocketPacket binaryEventPacket(String namespace, String eventName, List<Object> data, byte[][] binaries) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.BINARY_EVENT, namespace);
-        packet.setEventName(eventName);
-        packet.setData(data);
-        packet.setBinaryAttachments(binaries);
-        return packet;
-    }
-
-    public static SocketPacket binaryAckPacket(String namespace, int ackId, List<Object> data, byte[][] binaries) {
-        SocketPacket packet = new SocketPacket(SocketPacketType.BINARY_ACK, namespace);
-        packet.setAckId(ackId);
-        packet.setData(data);
-        packet.setBinaryAttachments(binaries);
-        return packet;
-    }
 }

@@ -49,7 +49,7 @@ public class Namespace {
         ackCallbacks.put(String.valueOf(ackId), new CopyOnWriteArrayList<>());
     }
 
-    public void triggerAck(int ackId, Object data) {
+    public void triggerAck(Long ackId, Object data) {
         String key = String.valueOf(ackId);
         CopyOnWriteArrayList<Consumer<SocketIOClient>> callbacks = ackCallbacks.remove(key);
         if (callbacks != null) {
