@@ -24,7 +24,7 @@ public class SocketIOEventRouterHandler extends SimpleChannelInboundHandler<Sock
 
         String eventName = packet.getEventName();
         if (eventName != null && !eventName.isEmpty()) {
-            eventRouter.route(namespace, eventName, null, packet.getData() != null ? packet.getData().toArray() : new Object[0]);
+//            eventRouter.route(namespace, eventName, null, packet.getData() != null ? packet.getData().toArray() : new Object[0]);
         }
     }
 

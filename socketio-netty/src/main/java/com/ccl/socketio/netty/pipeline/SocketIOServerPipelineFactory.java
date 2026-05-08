@@ -1,10 +1,12 @@
 package com.ccl.socketio.netty.pipeline;
 
-import com.ccl.engineio.netty.handler.*;
+import com.ccl.engineio.netty.handler.EngineIOHandshakeHandler;
+import com.ccl.engineio.netty.handler.codec.EngineIOCodec;
 import com.ccl.engineio.netty.transport.PollingTransport;
 import com.ccl.socketio.core.event.EventRouter;
 import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
+import com.ccl.socketio.netty.handler.codec.SocketIOCodec;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.stream.ChunkedWriteHandler;
@@ -77,15 +79,15 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
     protected void initChannel(Channel ch) throws Exception {
         ChannelPipeline pipeline = ch.pipeline();
 
-        // 1. HTTP 基础编解码器
+        // ==================== 第一层：HTTP 基础编解码（必须加）====================
+        // 1. HTTP 基础编解码器 请求解码/响应编码
         HttpServerCodec httpCodec = new HttpServerCodec();
         pipeline.addLast("httpCodec", httpCodec);
-
         // 2. 协议升级处理器
-        pipeline.addLast("upgrade", new EngineIOUpgradeHandler(httpCodec));
-
+        // pipeline.addLast("upgrade", new EngineIOUpgradeHandler(httpCodec));
         // 3. 聚合完整HTTP请求
         pipeline.addLast("httpAggregator", new HttpObjectAggregator(65536));
+        //
         pipeline.addLast("chunked", new ChunkedWriteHandler());
 
         // --- Idle state ---
@@ -95,16 +97,18 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                0, TimeUnit.SECONDS));
 
         // EngineIO握手处理器（核心）
-        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536, enableCors, corsOrigin));
+        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536));
 
         // --- Engine.IO heartbeat ---
         // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
 
-        // Engine.IO Polling 处理器 4. 长轮询业务处理器（处理 polling 握手、GET/POST）
+        // Engine.IO Polling 处理器（处理 polling 握手、GET/POST）
         pipeline.addLast("polling", new PollingTransport());
 
         // --- Engine.IO codec: ByteBuf → EnginePacket ---
-        pipeline.addLast("engineCodec", new EngineIOCodec((int) pingInterval, (int) pingTimeout));
+        pipeline.addLast("engineCodec", new EngineIOCodec());
+
+        pipeline.addLast("socketCodec", new SocketIOCodec());
 
         // --- Engine.IO session management ---
 //        pipeline.addLast("engineSession", new EngineIOSessionHandler());

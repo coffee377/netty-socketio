@@ -2,7 +2,6 @@ package com.ccl.socketio.netty.handler;
 
 import com.ccl.socketio.core.namespace.Namespace;
 import com.ccl.socketio.core.namespace.NamespaceManager;
-import com.ccl.socketio.core.protocol.SocketPacketType;
 import com.ccl.socketio.core.protocol.SocketPacket;
 import io.netty.channel.*;
 
@@ -20,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>ACK：消息确认，触发对应的回调</li>
  * </ul>
  */
-public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<SocketPacket> {
+public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<SocketPacket<?>> {
 
     private final NamespaceManager namespaceManager;
     private final Map<String, Namespace.SocketIOClient> clients = new ConcurrentHashMap<>();
@@ -69,7 +68,8 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
         clients.put(sessionId, client);
         namespace.emit("connect", client);
 
-        SocketPacket ackPacket = new SocketPacket(SocketPacketType.CONNECT, namespace.getName());
+        SocketPacket<?> ackPacket = SocketPacket.builder().type(SocketPacket.Type.CONNECT)
+                .namespace(namespace.getName()).build();
         ctx.writeAndFlush(ackPacket);
     }
 
@@ -80,10 +80,10 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
         }
     }
 
-    private void handleEvent(ChannelHandlerContext ctx, Namespace namespace, String sessionId, SocketPacket packet) {
+    private void handleEvent(ChannelHandlerContext ctx, Namespace namespace, String sessionId, SocketPacket<?> packet) {
         Namespace.SocketIOClient client = clients.get(sessionId);
         if (client != null) {
-            namespace.emit(packet.getEventName(), client, packet.getData() != null ? packet.getData().toArray() : new Object[0]);
+//            namespace.emit(packet.getEventName(), client, packet.getData() != null ? packet.getData().toArray() : new Object[0]);
         }
     }
 
