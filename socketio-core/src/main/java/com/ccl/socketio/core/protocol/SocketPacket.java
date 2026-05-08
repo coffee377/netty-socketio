@@ -1,9 +1,10 @@
 package com.ccl.socketio.core.protocol;
 
-
-import com.ccl.engineio.core.protocol.EngineIOPacket;
-
+import java.util.ArrayList;
 import java.util.List;
+
+import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_ACK;
+import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
 
 // <packet type>[<# of binary attachments>-][<namespace>,][<acknowledgment id>][JSON-stringified payload without binary]
 //
@@ -15,7 +16,7 @@ public class SocketPacket<T> {
     private final Long ackId;
     private String eventName;
     private final T data;
-    private List<byte[]> attachments;
+    private final List<byte[]> attachments;
 
     private String dataSource;
 
@@ -25,6 +26,7 @@ public class SocketPacket<T> {
         this.namespace = builder.namespace;
         this.ackId = builder.ackId;
         this.data = builder.data;
+        this.attachments = new ArrayList<>();
     }
 
     public static <D> SocketPacket.Builder<D> builder() {
@@ -75,6 +77,36 @@ public class SocketPacket<T> {
 
     public boolean isAttachmentsLoaded() {
         return this.attachments.size() == attachmentsCount;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(this.getType().getValue());
+
+        if (BINARY_EVENT.equals(this.getType()) || BINARY_ACK.equals(this.getType())) {
+            sb.append(this.getAttachmentsCount());
+            sb.append("-");
+        }
+
+        String nsp = this.getNamespace();
+        if (nsp != null && !nsp.isEmpty() && !"/".equals(nsp)) {
+            sb.append(nsp);
+            sb.append(",");
+        }
+
+        if (this.getAckId() != null) {
+            sb.append(this.getAckId());
+        }
+
+        if (this.getData() != null) {
+            String string = this.getData().toString();
+            if (string != null && !string.isEmpty()) {
+                sb.append(string);
+            }
+        }
+
+        return sb.toString();
     }
 
     public enum Type {

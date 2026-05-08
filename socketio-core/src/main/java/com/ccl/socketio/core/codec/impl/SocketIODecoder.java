@@ -75,7 +75,6 @@ public class SocketIODecoder implements SocketDecoder {
 //            }
         }
 
-//        logger.fine(String.format("decoded %s as %s", raw, p));
         return builder.build();
     }
 }

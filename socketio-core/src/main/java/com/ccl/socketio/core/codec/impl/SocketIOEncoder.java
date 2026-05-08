@@ -2,13 +2,17 @@ package com.ccl.socketio.core.codec.impl;
 
 import com.ccl.socketio.core.codec.SocketEncoder;
 import com.ccl.socketio.core.protocol.SocketPacket;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_ACK;
 import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
 
 public class SocketIOEncoder implements SocketEncoder {
 
-    private String encodeAsString(SocketPacket<?> packet) {
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    public String encode(SocketPacket<?> packet) {
         StringBuilder sb = new StringBuilder();
         sb.append(packet.getType().getValue());
 
@@ -29,9 +33,15 @@ public class SocketIOEncoder implements SocketEncoder {
 
         if (packet.getData() != null) {
             // TODO: 2026/05/08 17:28 json 序列化
-//            sb.append(packet.data);
+            try {
+                String s = mapper.writeValueAsString(packet.getData());
+                sb.append(s);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         return sb.toString();
     }
+
 }
