@@ -35,9 +35,9 @@ public class BusinessEventHandler extends SimpleChannelInboundHandler<SocketPack
                     listener.onDisconnect(sessionId, namespace);
                     break;
                 case EVENT:
-                    listener.onEvent(
-                            sessionId, namespace, packet.getEventName(),
-                            packet.getData() != null ? packet.getData().toArray() : new Object[0]);
+//                    listener.onEvent(
+//                            sessionId, namespace, packet.getEventName(),
+//                            packet.getData() != null ? packet.getData().toArray() : new Object[0]);
                     break;
                 case ACK:
                     break;
