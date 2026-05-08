@@ -1,7 +1,5 @@
 package com.ccl.engineio.parser;
 
-import com.ccl.engineio.core.parser.Parser;
-import com.ccl.engineio.core.parser.ParserFactory;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
@@ -424,43 +422,6 @@ public class ParserV4Test {
 
             assertEquals(original.getType(), decoded.getType());
             assertArrayEquals(binaryData, (byte[]) decoded.getData());
-        }
-    }
-
-    @Nested
-    @DisplayName("ParserFactory Tests")
-    class ParserFactoryTests {
-
-        @Test
-        @DisplayName("Should get default parser")
-        void testGetDefaultParser() {
-            Parser parser = ParserFactory.getDefaultParser();
-            assertNotNull(parser);
-            assertEquals(4, parser.getProtocolVersion());
-        }
-
-        @Test
-        @DisplayName("Should get parser by version V4")
-        void testGetParserByV4() {
-            Parser parser = ParserFactory.getParser("4");
-            assertNotNull(parser);
-            assertEquals(4, parser.getProtocolVersion());
-        }
-
-        @Test
-        @DisplayName("Should get parser by version V3")
-        void testGetParserByV3() {
-            Parser parser = ParserFactory.getParser("3");
-            assertNotNull(parser);
-            assertEquals(4, parser.getProtocolVersion());
-        }
-
-        @Test
-        @DisplayName("Should get parser for unknown version")
-        void testGetParserUnknownVersion() {
-            Parser parser = ParserFactory.getParser("unknown");
-            assertNotNull(parser);
-            assertEquals(4, parser.getProtocolVersion());
         }
     }
 
