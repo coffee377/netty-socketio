@@ -1,6 +1,6 @@
 package com.ccl.socketio.core.codec;
 
-import com.ccl.engineio.core.codec.StringCodec;
+import com.ccl.engineio.core.codec.Codec;
 
 /**
  * Socket.IO 编解码器基础接口
@@ -30,6 +30,6 @@ public interface SocketIO {
      *
      * @return 字符串编解码器实例
      */
-    StringCodec getStringCodec();
+    Codec getStringCodec();
 
 }

@@ -4,7 +4,6 @@ import com.ccl.engineio.core.codec.EngineIODecoder;
 import com.ccl.engineio.core.codec.EngineIOEncoder;
 import com.ccl.engineio.core.codec.impl.EngineIODecoderV4;
 import com.ccl.engineio.core.codec.impl.EngineIOEncoderV4;
-import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
 
@@ -95,13 +94,12 @@ public class ParserV4 implements Parser {
      * <p>支持从 String 或 byte[] 输入解码，底层委托给 EngineIOPacket.fromBytes</p>
      *
      * @param data     待解码的数据（String 或 byte[]）
-     * @param dataType 数据类型（明文或二进制）
      * @return 解码后的数据包，输入为 null 时返回 null
      * @throws IllegalArgumentException 数据类型不支持时抛出
      */
     @Override
-    public EngineIOPacket<?> decodePacket(Object data, DataType dataType) {
-        return decoder.decodePacket(data, dataType);
+    public EngineIOPacket<?> decodePacket(Object data) {
+        return decoder.decodePacket(data);
     }
 
     /**
@@ -109,13 +107,12 @@ public class ParserV4 implements Parser {
      * <p>使用 V4_RECORD_SEPARATOR（0x1E）作为分隔符拆分数据</p>
      *
      * @param data     待解码的 payload 数据（String 或 byte[]）
-     * @param dataType 数据类型（明文或二进制）
      * @return 解码后的数据包列表
      * @throws IllegalArgumentException 数据类型不支持时抛出
      */
     @Override
-    public List<EngineIOPacket<?>> decodePayload(Object data, DataType dataType) {
-        return decoder.decodePayload(data, dataType);
+    public List<EngineIOPacket<?>> decodePayload(Object data) {
+        return decoder.decodePayload(data);
     }
 
     @Override

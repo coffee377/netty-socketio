@@ -1,14 +1,16 @@
 package com.ccl.engineio.exception;
 
+import com.ccl.engineio.core.codec.Codec;
+
 /**
  * 反序列化异常
  *
- * <p>当将字符串数据解析为对象失败时抛出，通常由 {@link com.ccl.engineio.core.codec.StringCodec} 抛出</p>
+ * <p>当将字符串数据解析为对象失败时抛出，通常由 {@link Codec} 抛出</p>
  *
  * @author coffee377
  * @since 4.0.0-alpha.0
  * @see SerializationException
- * @see com.ccl.engineio.core.codec.StringCodec
+ * @see Codec
  */
 public class DeserializationException extends EngineIOException {
 

@@ -1,5 +1,6 @@
 package com.ccl.socketio.core.codec;
 
+import com.ccl.engineio.core.codec.EngineIO;
 import com.ccl.socketio.core.protocol.SocketPacket;
 
 /**

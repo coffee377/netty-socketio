@@ -1,11 +1,13 @@
 package com.ccl.engineio.core.codec.impl;
 
-import com.ccl.engineio.core.codec.StringCodec;
+import com.ccl.engineio.core.codec.Codec;
 import com.ccl.engineio.exception.DeserializationException;
 import com.ccl.engineio.exception.SerializationException;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
+
+import java.io.IOException;
 
 /**
  * 基于 Jackson 的字符串编解码器实现
@@ -16,7 +18,7 @@ import com.fasterxml.jackson.databind.*;
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
-public class JacksonStringCodec implements StringCodec {
+public class JacksonCodec implements Codec {
 
     /**
      * Jackson 对象映射器，用于 JSON 处理
@@ -26,8 +28,8 @@ public class JacksonStringCodec implements StringCodec {
     /**
      * 默认构造函数
      */
-    public JacksonStringCodec() {
-        this(new Module[] {});
+    public JacksonCodec() {
+        this(new Module[]{});
     }
 
     /**
@@ -35,7 +37,7 @@ public class JacksonStringCodec implements StringCodec {
      *
      * @param modules 可选的 Jackson 模块数组
      */
-    public JacksonStringCodec(Module... modules) {
+    public JacksonCodec(Module... modules) {
         if (modules != null && modules.length > 0) {
             objectMapper.registerModules(modules);
         }
@@ -55,21 +57,38 @@ public class JacksonStringCodec implements StringCodec {
     }
 
     @Override
-    public <T> String serialize(T obj) throws SerializationException {
+    public <T> String serializeValueAsString(T value) throws SerializationException {
         try {
-            return objectMapper.writeValueAsString(obj);
+            return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
             throw new SerializationException(e.getMessage(), e);
         }
     }
 
     @Override
-    public <T> T deserialize(String str, Class<T> clazz) throws DeserializationException {
+    public <T> byte[] serializeValueAsBytes(T value) throws SerializationException {
         try {
-            return objectMapper.readValue(str, clazz);
+            return objectMapper.writeValueAsBytes(value);
+        } catch (JsonProcessingException e) {
+            throw new SerializationException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public <T> T deserialize(String src, Class<T> clazz) throws DeserializationException {
+        try {
+            return objectMapper.readValue(src, clazz);
         } catch (JsonProcessingException e) {
             throw new DeserializationException(e.getMessage(), e);
         }
     }
 
+    @Override
+    public <T> T deserialize(byte[] src, Class<T> clazz) throws DeserializationException {
+        try {
+            return objectMapper.readValue(src, clazz);
+        } catch (IOException e) {
+            throw new DeserializationException(e.getMessage(), e);
+        }
+    }
 }

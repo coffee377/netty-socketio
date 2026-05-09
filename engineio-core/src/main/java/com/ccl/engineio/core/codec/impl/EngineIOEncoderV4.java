@@ -1,6 +1,7 @@
 package com.ccl.engineio.core.codec.impl;
 
 import com.ccl.engineio.core.codec.EngineIOEncoder;
+import com.ccl.engineio.core.codec.Codec;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
 
@@ -17,14 +18,14 @@ import java.util.List;
  * <ul>
  *   <li>字符串数据：直接拼接类型字节和 UTF-8 编码的负载数据</li>
  *   <li>二进制数据：支持二进制时直接拼接，否则使用 Base64 编码（前缀 'b'）</li>
- *   <li>其他类型：转换为字符串后拼接</li>
+ *   <li>其他类型：优先使用 {@link Codec} 序列化为 JSON 字节数组，否则调用 toString()</li>
  * </ul>
  *
  * <p>批量编码时使用 V4 协议记录分隔符（0x1E）连接各数据包</p>
  *
+ * @author coffee377
  * @see EngineIOEncoder
  * @see EngineIODecoderV4
- * @author coffee377
  * @since 4.0.0-alpha.0
  */
 public class EngineIOEncoderV4 implements EngineIOEncoder {
@@ -37,7 +38,7 @@ public class EngineIOEncoderV4 implements EngineIOEncoder {
      *   <li>字符串数据：直接拼接类型字节和 UTF-8 编码的负载</li>
      *   <li>二进制数据（支持二进制）：直接拼接类型字节和原始二进制数据</li>
      *   <li>二进制数据（不支持二进制）：使用 Base64 编码，添加 'b' 前缀</li>
-     *   <li>其他类型：调用 toString() 后拼接</li>
+     *   <li>其他类型：优先使用 Codec 序列化为 JSON 字节数组，否则调用 toString()</li>
      * </ul>
      *
      * @param packet         数据包
@@ -46,40 +47,44 @@ public class EngineIOEncoderV4 implements EngineIOEncoder {
      */
     @Override
     public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportsBinary) {
-        byte[] typeBytes = new byte[]{packet.getType().getByte()};
+        byte typeByte = packet.getType().getByte();
+        byte[] typeBytes = new byte[]{typeByte};
         Object data = packet.getData();
-
+        byte[] result;
         if (data instanceof String) {
             byte[] payloadBytes = ((String) data).getBytes(StandardCharsets.UTF_8);
-            byte[] result = new byte[typeBytes.length + payloadBytes.length];
+            result = new byte[typeBytes.length + payloadBytes.length];
             System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
             System.arraycopy(payloadBytes, 0, result, typeBytes.length, payloadBytes.length);
             return result;
         } else if (data instanceof byte[]) {
             if (supportsBinary) {
                 byte[] payloadBytes = (byte[]) data;
-                byte[] result = new byte[typeBytes.length + payloadBytes.length];
+                result = new byte[typeBytes.length + payloadBytes.length];
                 System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
                 System.arraycopy(payloadBytes, 0, result, typeBytes.length, payloadBytes.length);
                 return result;
             } else {
-                String base64 = Base64.getEncoder().encodeToString((byte[]) data);
-                byte[] base64Bytes = base64.getBytes(StandardCharsets.UTF_8);
-                byte[] result = new byte[1 + base64Bytes.length];
+                byte[] base64Bytes = Base64.getEncoder().encode((byte[]) data);
+                result = new byte[1 + base64Bytes.length];
                 result[0] = 'b';
                 System.arraycopy(base64Bytes, 0, result, 1, base64Bytes.length);
                 return result;
             }
-        } else {
-            byte[] result = typeBytes;
-            if (data != null) {
-                String json = data.toString();
-                result = new byte[typeBytes.length + json.length()];
-                System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
-                System.arraycopy(json.getBytes(StandardCharsets.UTF_8), 0, result, typeBytes.length, json.length());
+        } else if (data != null) {
+            Codec codec = getStringCodec();
+            byte[] bytes;
+            if (codec != null) {
+                bytes = codec.serializeValueAsBytes(data);
+            } else {
+                bytes = data.toString().getBytes(StandardCharsets.UTF_8);
             }
+            result = new byte[bytes.length + 1];
+            result[0] = typeByte;
+            System.arraycopy(bytes, 0, result, 1, bytes.length);
             return result;
         }
+        return typeBytes;
     }
 
     /**

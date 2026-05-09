@@ -24,10 +24,9 @@ public interface EngineIODecoder extends EngineIO {
      * 根据数据包类型和内容构建对应的数据包实例</p>
      *
      * @param data     原始数据（字符串或字节数组）
-     * @param dataType 数据类型（文本或二进制）
      * @return 解码后的数据包，data 为 null 时返回 null
      */
-    EngineIOPacket<?> decodePacket(Object data, DataType dataType);
+    EngineIOPacket<?> decodePacket(Object data);
 
     /**
      * 解码多个数据包（Payload）
@@ -36,9 +35,8 @@ public interface EngineIODecoder extends EngineIO {
      * 使用记录分隔符（如 0x1E）分割各个数据包</p>
      *
      * @param payload  原始数据（字符串或字节数组）
-     * @param dataType 数据类型（文本或二进制）
      * @return 解码后的数据包列表，空数据返回空列表
      */
-    List<EngineIOPacket<?>> decodePayload(Object payload, DataType dataType);
+    List<EngineIOPacket<?>> decodePayload(Object payload);
 
 }

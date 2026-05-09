@@ -1,7 +1,7 @@
 package com.ccl.socketio.core.codec.impl;
 
-import com.ccl.engineio.core.codec.impl.JacksonStringCodec;
-import com.ccl.engineio.core.codec.StringCodec;
+import com.ccl.engineio.core.codec.impl.JacksonCodec;
+import com.ccl.engineio.core.codec.Codec;
 import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.protocol.SocketPacket;
 
@@ -33,14 +33,14 @@ public class SocketIODecoderV5 implements SocketDecoder {
     /**
      * 字符串编解码器，用于 JSON 解析
      */
-    private final StringCodec stringCodec;
+    private final Codec stringCodec;
 
     /**
      * 构造函数
      *
      * @param stringCodec 字符串编解码器
      */
-    public SocketIODecoderV5(StringCodec stringCodec) {
+    public SocketIODecoderV5(Codec stringCodec) {
         this.stringCodec = stringCodec;
     }
 
@@ -48,7 +48,7 @@ public class SocketIODecoderV5 implements SocketDecoder {
      * 默认构造函数
      */
     public SocketIODecoderV5() {
-        this(new JacksonStringCodec());
+        this(new JacksonCodec());
     }
 
     @Override
@@ -57,7 +57,7 @@ public class SocketIODecoderV5 implements SocketDecoder {
     }
 
     @Override
-    public StringCodec getStringCodec() {
+    public Codec getStringCodec() {
         return stringCodec;
     }
 
@@ -141,7 +141,7 @@ public class SocketIODecoderV5 implements SocketDecoder {
 
         if (length > i + 1) {
             String json = raw.substring(i + 1);
-            StringCodec codec = getStringCodec();
+            Codec codec = getStringCodec();
             if (codec != null) {
                 T data = getStringCodec().deserialize(json, clazz);
                 builder.data(data);

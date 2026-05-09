@@ -2,10 +2,8 @@ package com.ccl.engineio.netty.transport;
 
 import com.ccl.engineio.core.parser.Parser;
 import com.ccl.engineio.core.parser.ParserV4;
-import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
-import com.ccl.socketio.core.protocol.SocketPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -16,9 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -43,10 +39,13 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     private static final Logger log = LoggerFactory.getLogger(PollingTransport.class);
     private static final ConcurrentHashMap<String, Queue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
-    private static final ConcurrentHashMap<String, Queue<EngineIOPacket<?>>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Queue<ByteBuf>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
 
     private final Parser phaser;
 
+    /**
+     * 默认构造函数，使用 V4 协议解析器
+     */
     public PollingTransport() {
         this.phaser = ParserV4.getInstance();
     }
@@ -73,6 +72,16 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     private String getSessionIdFromRequest(FullHttpRequest request) {
         QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
         return decoder.parameters().getOrDefault("sid", Collections.emptyList()).stream().findFirst().orElse(null);
+    }
+
+    private void sendSuccessResponse(ChannelHandlerContext ctx, ByteBuf content, String origin) {
+        FullHttpResponse response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content
+        );
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
+        addOriginHeaders(origin, response);
+        HttpUtil.setContentLength(response, response.content().readableBytes());
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
     }
 
     private void sendSuccessResponse(ChannelHandlerContext ctx, String content, String origin) {
@@ -121,7 +130,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         sendSuccessResponse(ctx, "ok", origin);
 
         // 2. 解析 POST 数据包（请求体）
-        EngineIOPacket<?> packet = phaser.decodePacket(content.toString(CharsetUtil.UTF_8), DataType.PLAINTEXT);
+        EngineIOPacket<?> packet = phaser.decodePacket(content.toString(CharsetUtil.UTF_8));
 
         // 3. 执行业务逻辑（自定义处理 EngineIO 数据包）
         processEngineIOPacket(ctx, sessionId, packet);
@@ -130,26 +139,41 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         wakeupPendingGet(sessionId, origin);
     }
 
-    // 唤醒挂起的 GET：发送待发消息
+    /**
+     * 唤醒挂起的 GET 请求，发送待发消息
+     *
+     * <p>取出最早挂起的 GET 请求，将当前 Session 的所有待发消息写入其 Channel。</p>
+     *
+     * @param sessionId 会话 ID
+     * @param origin    请求来源
+     */
     private void wakeupPendingGet(String sessionId, String origin) {
         Queue<PendingRequest> pendingGets = PENDING_GETS.get(sessionId);
-        Queue<EngineIOPacket<?>> pendingMessages = OUTPUT_PACKETS.get(sessionId);
+        Queue<ByteBuf> pendingMessages = OUTPUT_PACKETS.get(sessionId);
         if (pendingGets == null || pendingGets.isEmpty() || pendingMessages == null || pendingMessages.isEmpty()) {
             return;
         }
 
         PendingRequest pendingGet = pendingGets.poll();
 
-        EngineIOPacket<?> message;
+        ByteBuf message;
         // 非阻塞循环：取一条 → 处理一条 → 直到队列为null
         while ((message = pendingMessages.poll()) != null) {
-            pendingGet.getCtx().channel().writeAndFlush(message);
+            sendSuccessResponse(pendingGet.getCtx(),message, origin);
         }
 
         pendingGet.getPromise().setSuccess();
     }
 
-    // 处理 EngineIO 业务数据包（自定义实现）
+    /**
+     * 处理 EngineIO 业务数据包
+     *
+     * <p>将解析后的 EngineIO 数据包传递给下游处理器进行业务处理。</p>
+     *
+     * @param ctx       Channel 上下文
+     * @param sessionId 会话 ID
+     * @param packet    EngineIO 数据包
+     */
     private void processEngineIOPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<?> packet) {
         // 你的业务逻辑：解析消息、存储、转发等
         ctx.fireChannelRead(packet);
@@ -169,12 +193,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
             log.debug("Polling GET {}", request.uri());
         }
         // 1. 获取当前 Session 的待发送消息
-        Queue<EngineIOPacket<?>> pendingMessages = OUTPUT_PACKETS.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
-        EngineIOPacket<?> message = pendingMessages.poll();
+        Queue<ByteBuf> pendingMessages = OUTPUT_PACKETS.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
+        ByteBuf message = pendingMessages.poll();
 
         // 2. 有消息：立即响应，不悬挂
         if (message != null) {
-            ctx.channel().writeAndFlush(message);
+            sendSuccessResponse(ctx, message, origin);
             return;
         }
 
@@ -201,7 +225,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     }
 
-    // GET 超时回调：响应空包
+    /**
+     * GET 超时回调，响应空包
+     *
+     * @param sessionId 会话 ID
+     * @param origin    请求来源
+     */
     private void onPendingGetTimeout(String sessionId, String origin) {
         Queue<PendingRequest> queue = PENDING_GETS.get(sessionId);
         if (queue == null || queue.isEmpty()) return;
@@ -229,18 +258,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         ctx.close();
     }
 
-    public void sendMessage(String sid, List<EngineIOPacket<?>> packets) {
-        Queue<EngineIOPacket<?>> queue = OUTPUT_PACKETS.get(sid);
-        for (EngineIOPacket<?> packet : packets) {
-            queue.offer(packet);
-        }
-        wakeupPendingGet(sid, "");
-    }
 
-    public final void sendMessage(String sid, EngineIOPacket<?>... packet) {
-        if (packet == null || packet.length == 0) return;
-        List<EngineIOPacket<?>> list = Arrays.asList(packet);
-        sendMessage(sid, list);
+    public final void sendMessage(String sid, ByteBuf content) {
+        log.info("OUT {}", content.toString(CharsetUtil.UTF_8));
+        Queue<ByteBuf> queue = OUTPUT_PACKETS.get(sid);
+        queue.offer(content);
+        wakeupPendingGet(sid, "*");
     }
 
     private static class PendingRequest {

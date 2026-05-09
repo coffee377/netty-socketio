@@ -1,9 +1,9 @@
 package com.ccl.engineio.core.codec.impl;
 
 import com.ccl.engineio.core.codec.EngineIODecoder;
-import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
+import com.ccl.engineio.exception.EngineIOException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -48,19 +48,18 @@ public class EngineIODecoderV4 implements EngineIODecoder {
      * String 会转换为 UTF-8 字节数组进行处理</p>
      *
      * @param data     原始数据（字符串或字节数组）
-     * @param dataType 数据类型（文本或二进制）
      * @return 解码后的数据包，data 为 null 时返回 null
      * @throws IllegalArgumentException 当输入类型不支持时
      */
     @Override
-    public EngineIOPacket<?> decodePacket(Object data, DataType dataType) {
+    public EngineIOPacket<?> decodePacket(Object data) {
         if (data == null) return null;
         if (data instanceof String) {
             return decodeString((String) data);
         } else if (data instanceof byte[]) {
-            return fromBytes((byte[]) data, dataType);
+            return fromBytes((byte[]) data);
         } else {
-            throw new IllegalArgumentException("Invalid type for data: " + data.getClass().getName());
+            throw new EngineIOException("Invalid type for data: " + data.getClass().getName());
         }
     }
 
@@ -71,12 +70,11 @@ public class EngineIODecoderV4 implements EngineIODecoder {
      * 分割各数据包，然后逐一解码</p>
      *
      * @param payload  原始数据（字符串或字节数组）
-     * @param dataType 数据类型（文本或二进制）
      * @return 解码后的数据包列表，空数据返回空列表
      * @throws IllegalArgumentException 当输入类型不支持时
      */
     @Override
-    public List<EngineIOPacket<?>> decodePayload(Object payload, DataType dataType) {
+    public List<EngineIOPacket<?>> decodePayload(Object payload) {
         byte[] bytesData;
         if (payload instanceof String) {
             bytesData = ((String) payload).getBytes(StandardCharsets.UTF_8);
@@ -90,7 +88,7 @@ public class EngineIODecoderV4 implements EngineIODecoder {
         List<EngineIOPacket<?>> packets = new ArrayList<>();
         for (byte[] packetData : splitPackets) {
             if (packetData.length > 0) {
-                EngineIOPacket<?> packet = decodePacket(new String(packetData, StandardCharsets.UTF_8), dataType);
+                EngineIOPacket<?> packet = decodePacket(new String(packetData, StandardCharsets.UTF_8));
                 if (packet == null) {
                     continue;
                 }
@@ -112,10 +110,9 @@ public class EngineIODecoderV4 implements EngineIODecoder {
      * </ul>
      *
      * @param byteData 原始字节数据
-     * @param dataType 数据类型（文本或二进制）
      * @return 解析后的数据包实例
      */
-    public EngineIOPacket<?> fromBytes(byte[] byteData, DataType dataType) {
+    public EngineIOPacket<?> fromBytes(byte[] byteData) {
         EngineIOPacket.Builder<?> builder = EngineIOPacket.builder();
         if (byteData.length == 0) {
             return builder.build();

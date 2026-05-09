@@ -1,14 +1,16 @@
 package com.ccl.engineio.core.codec;
 
+import com.ccl.engineio.core.codec.impl.JacksonCodec;
+
 /**
  * Engine.IO 编解码器基础接口
  *
  * <p>为所有 Engine.IO 编解码器提供公共常量和协议版本支持检查，
  * 所有 {@link EngineIODecoder} 和 {@link EngineIOEncoder} 实现必须继承此接口</p>
  *
+ * @author coffee377
  * @see EngineIODecoder
  * @see EngineIOEncoder
- * @author coffee377
  * @since 4.0.0-alpha.0
  */
 public interface EngineIO {
@@ -28,6 +30,15 @@ public interface EngineIO {
      */
     default boolean isSupport(int protocolVersion) {
         return true;
+    }
+
+    /**
+     * 获取字符串编解码器
+     *
+     * @return 字符串编解码器实例
+     */
+    default Codec getStringCodec() {
+        return new JacksonCodec();
     }
 
 }
