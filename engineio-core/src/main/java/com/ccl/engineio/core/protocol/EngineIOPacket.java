@@ -1,6 +1,8 @@
 package com.ccl.engineio.core.protocol;
 
-import java.util.Base64;
+import com.ccl.engineio.exception.EngineIOException;
+
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 /**
@@ -30,46 +32,6 @@ public final class EngineIOPacket<T> {
     }
 
     /**
-     * 根据字节数组解析并构建数据包
-     *
-     * <p>解析规则：
-     * <ul>
-     *   <li>'b' 前缀：Base64 编码的二进制数据（作为 MESSAGE 类型）</li>
-     *   <li>类型字节 + 数据：数据包类型 + 负载数据</li>
-     *   <li>其他：整个字节数组作为 MESSAGE 类型数据</li>
-     * </ul>
-     *
-     * @param byteData 原始字节数据
-     * @param dataType 数据类型标识
-     * @return 解析后的数据包实例
-     */
-    public static EngineIOPacket<?> fromBytes(byte[] byteData, DataType dataType) {
-        Builder<?> builder = EngineIOPacket.builder();
-        if (byteData == null || byteData.length == 0) {
-            return builder.build();
-        }
-
-        int firstInt = byteData[0] & 0xFF;
-
-        if (firstInt == 'b') {
-            byte[] data = Base64.getDecoder().decode(new String(byteData, 1, byteData.length - 1));
-            return builder.data(data).build();
-        }
-
-        if (firstInt >= (Type.OPEN.getStringByte() & 0xFF) && firstInt <= (Type.NOOP.getStringByte() & 0xFF)) {
-            Type type = Type.fromByte((byte) firstInt);
-            if (byteData.length > 1) {
-                byte[] data = new byte[byteData.length - 1];
-                System.arraycopy(byteData, 1, data, 0, data.length);
-                return builder.type(type).data(data).build();
-            }
-            return builder.type(type).build();
-        }
-
-        return builder.data(byteData).build();
-    }
-
-    /**
      * 获取数据包负载数据
      *
      * @return 负载数据，无数据时返回 null
@@ -89,8 +51,13 @@ public final class EngineIOPacket<T> {
 
     @Override
     public String toString() {
-        return String.format("%d%s", this.type.getCode(),
-                Optional.ofNullable(this.data).map(Object::toString).orElse(""));
+        String data;
+        if (this.data instanceof byte[]) {
+            data = new String((byte[]) this.data, StandardCharsets.UTF_8);
+        } else {
+            data = Optional.ofNullable(this.data).map(Object::toString).orElse("");
+        }
+        return String.format("%d%s", this.type.getCode(), data);
     }
 
     /**
@@ -215,15 +182,6 @@ public final class EngineIOPacket<T> {
         }
 
         /**
-         * 转换为二进制字节（保留低4位）
-         *
-         * @return 二进制字节值
-         */
-        public byte getBinaryByte() {
-            return (byte) (code & 0x0F);
-        }
-
-        /**
          * 转换为字符串字节
          *
          * <p>将编码值加上 '0' 得到对应的 ASCII 字符字节</p>
@@ -239,14 +197,19 @@ public final class EngineIOPacket<T> {
          *
          * @param b 字节值（ASCII 字符，如 '0', '4'）
          * @return 对应的 Type 枚举值
-         * @throws ArrayIndexOutOfBoundsException 当字节值无效时
+         * @throws EngineIOException 当字节值无效时
          */
         public static Type fromByte(byte b) {
-            int index = b - '0';
-            if (index < 0 || index >= values().length) {
-                throw new ArrayIndexOutOfBoundsException("Invalid packet type byte: " + b);
+            int num = b - '0';
+            if (num < OPEN.code || num > NOOP.code) {
+                throw new EngineIOException("Invalid packet type byte: " + b);
             }
-            return values()[index];
+            for (Type value : values()) {
+                if (value.getCode() == num) {
+                    return value;
+                }
+            }
+            return values()[num];
         }
     }
 

@@ -1,9 +1,9 @@
 package com.ccl.engineio.core.parser;
 
-import com.ccl.engineio.core.codec.Decoder;
-import com.ccl.engineio.core.codec.Encoder;
-import com.ccl.engineio.core.codec.impl.EngineV4Decoder;
-import com.ccl.engineio.core.codec.impl.EngineV4Encoder;
+import com.ccl.engineio.core.codec.EngineIODecoder;
+import com.ccl.engineio.core.codec.EngineIOEncoder;
+import com.ccl.engineio.core.codec.impl.EngineIODecoderV4;
+import com.ccl.engineio.core.codec.impl.EngineIOEncoderV4;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
@@ -41,15 +41,22 @@ public class ParserV4 implements Parser {
         return INSTANCE;
     }
 
-    private final Decoder decoder;
-    private final Encoder encoder;
+    /**
+     * Engine.IO 解码器
+     */
+    private final EngineIODecoder decoder;
+
+    /**
+     * Engine.IO 编码器
+     */
+    private final EngineIOEncoder encoder;
 
     /**
      * 默认构造函数
      */
     public ParserV4() {
-        this.encoder = new EngineV4Encoder();
-        this.decoder = new EngineV4Decoder();
+        this.encoder = new EngineIOEncoderV4();
+        this.decoder = new EngineIODecoderV4();
     }
 
     /**

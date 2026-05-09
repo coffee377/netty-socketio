@@ -4,8 +4,8 @@ import com.ccl.engineio.core.parser.Parser;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
-import com.ccl.engineio.core.session.SessionManager;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
+import com.ccl.socketio.core.protocol.SocketPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -16,7 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -40,18 +42,13 @@ import java.util.concurrent.TimeUnit;
 public class PollingTransport extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     private static final Logger log = LoggerFactory.getLogger(PollingTransport.class);
-
-    private static final long POST_TIMEOUT = 60_000L;
-
     private static final ConcurrentHashMap<String, Queue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Queue<EngineIOPacket<?>>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
 
     private final Parser phaser;
-    private final SessionManager sessionManager;
 
     public PollingTransport() {
         this.phaser = ParserV4.getInstance();
-        this.sessionManager = SessionManager.getInstance();
     }
 
     @Override
@@ -98,6 +95,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     private void handleMessage(ChannelHandlerContext ctx, FullHttpRequest request, String sid) {
+        ctx.channel().attr(ChannelAttributes.SESSION_ID).set(sid);
         String origin = request.headers().get(HttpHeaderNames.ORIGIN);
         if (HttpMethod.GET.equals(request.method())) {
             handleGet(ctx, request, sid, origin);
@@ -141,8 +139,13 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         }
 
         PendingRequest pendingGet = pendingGets.poll();
-        EngineIOPacket<?> message = pendingMessages.poll();
-        pendingGet.getCtx().channel().writeAndFlush(message);
+
+        EngineIOPacket<?> message;
+        // 非阻塞循环：取一条 → 处理一条 → 直到队列为null
+        while ((message = pendingMessages.poll()) != null) {
+            pendingGet.getCtx().channel().writeAndFlush(message);
+        }
+
         pendingGet.getPromise().setSuccess();
     }
 
@@ -226,12 +229,18 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         ctx.close();
     }
 
-    public void sendMessage(String sid, EngineIOPacket<String> packet) {
+    public void sendMessage(String sid, List<EngineIOPacket<?>> packets) {
         Queue<EngineIOPacket<?>> queue = OUTPUT_PACKETS.get(sid);
-        queue.offer(packet);
+        for (EngineIOPacket<?> packet : packets) {
+            queue.offer(packet);
+        }
+        wakeupPendingGet(sid, "");
+    }
 
-        wakeupPendingGet(sid,"");
-
+    public final void sendMessage(String sid, EngineIOPacket<?>... packet) {
+        if (packet == null || packet.length == 0) return;
+        List<EngineIOPacket<?>> list = Arrays.asList(packet);
+        sendMessage(sid, list);
     }
 
     private static class PendingRequest {

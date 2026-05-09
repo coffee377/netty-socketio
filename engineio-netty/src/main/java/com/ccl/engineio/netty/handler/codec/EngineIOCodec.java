@@ -1,49 +1,85 @@
 package com.ccl.engineio.netty.handler.codec;
 
-import com.ccl.engineio.core.codec.Encoder;
-import com.ccl.engineio.core.codec.impl.EngineV4Encoder;
-import com.ccl.engineio.core.parser.ParserV4;
+import com.ccl.engineio.core.codec.EngineIOEncoder;
+import com.ccl.engineio.core.codec.impl.EngineIOEncoderV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
+import com.ccl.engineio.exception.EngineIOException;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.codec.SocketDecoder;
-import com.ccl.socketio.core.codec.impl.SocketIODecoder;
+import com.ccl.socketio.core.codec.impl.SocketIODecoderV5;
 import com.ccl.socketio.core.protocol.SocketPacket;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageCodec;
 import io.netty.handler.codec.http.*;
-import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+/**
+ * Engine.IO 编解码处理器
+ *
+ * <p>继承 Netty 的 MessageToMessageCodec，实现 Engine.IO 数据包的编解码：
+ * <ul>
+ *   <li>解码：将 EngineIOPacket 转换为 SocketPacket（处理二进制附件组装）</li>
+ *   <li>编码：将 EngineIOPacket 编码为 HTTP 响应数据</li>
+ * </ul>
+ * </p>
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ * @see com.ccl.engineio.core.codec.EngineIOEncoder
+ * @see com.ccl.engineio.core.codec.EngineIODecoder
+ */
 @Sharable
 public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, EngineIOPacket<?>> {
-    private static final Logger log = LoggerFactory.getLogger(EngineIOCodec.class);
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    /**
+     * 日志记录器
+     */
+    private static final Logger log = LoggerFactory.getLogger(EngineIOCodec.class);
+
+    /**
+     * 是否启用 CORS
+     */
     private final boolean enableCors;
+
+    /**
+     * CORS 允许的来源
+     */
     private final String corsOrigin;
 
+    /**
+     * Socket.IO 解码器
+     */
     private final SocketDecoder decoder;
-    private final Encoder encoder;
 
+    /**
+     * Engine.IO 编码器
+     */
+    private final EngineIOEncoder encoder;
 
+    /**
+     * 默认构造函数
+     */
     public EngineIOCodec() {
         this("*", true);
     }
 
+    /**
+     * 构造函数
+     *
+     * @param corsOrigin  CORS 允许的来源，"*" 表示允许所有
+     * @param enableCors  是否启用 CORS
+     */
     public EngineIOCodec(String corsOrigin, boolean enableCors) {
         this.corsOrigin = corsOrigin;
         this.enableCors = enableCors;
-        this.decoder = new SocketIODecoder();
-        this.encoder = new EngineV4Encoder();
+        this.decoder = new SocketIODecoderV5();
+        this.encoder = new EngineIOEncoderV4();
     }
 
     @Override
@@ -95,19 +131,24 @@ public class EngineIOCodec extends MessageToMessageCodec<EngineIOPacket<?>, Engi
             case PONG:
             case MESSAGE:
                 Object data = msg.getData();
-                String raw = null;
+                SocketPacket<?> socketPacket;
                 if (data instanceof String) {
-                    raw = (String) data;
-                } else if (data instanceof ByteBuf) {
-                    raw = ((ByteBuf) data).toString(CharsetUtil.UTF_8);
+                    socketPacket = decoder.decode((String) data);
+                    if (socketPacket.hasAttachments() && !socketPacket.isAttachmentsLoaded()) {
+                        ctx.channel().attr(ChannelAttributes.SOCKET_PACKET).set(socketPacket);
+                    }
                 } else if (data instanceof byte[]) {
-                    raw = new String((byte[]) data, StandardCharsets.UTF_8);
+                    socketPacket = ctx.channel().attr(ChannelAttributes.SOCKET_PACKET).get();
+                    if (socketPacket != null) {
+                        socketPacket.addAttachment((byte[]) data);
+                    }
+                } else {
+                    throw new EngineIOException("类型错误");
                 }
-                SocketPacket<?> socketPacket = decoder.decode(raw);
                 if (socketPacket != null && socketPacket.isAttachmentsLoaded()) {
                     out.add(socketPacket);
                 }
-                break;
+                return;
             case UPGRADE:
             case NOOP:
         }
