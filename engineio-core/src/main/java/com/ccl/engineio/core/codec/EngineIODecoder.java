@@ -11,11 +11,11 @@ import java.util.List;
  * <p>负责将原始数据解码为 {@link EngineIOPacket} 数据包实例，
  * 支持单个数据包解码和批量 Payload 解码两种模式</p>
  *
- * @see Encoder
+ * @see EngineIOEncoder
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
-public interface Decoder extends EngineIO {
+public interface EngineIODecoder extends EngineIO {
 
     /**
      * 解码单个数据包

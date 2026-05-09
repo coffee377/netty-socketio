@@ -4,10 +4,10 @@ package com.ccl.engineio.core.codec;
  * Engine.IO 编解码器基础接口
  *
  * <p>为所有 Engine.IO 编解码器提供公共常量和协议版本支持检查，
- * 所有 {@link Decoder} 和 {@link Encoder} 实现必须继承此接口</p>
+ * 所有 {@link EngineIODecoder} 和 {@link EngineIOEncoder} 实现必须继承此接口</p>
  *
- * @see Decoder
- * @see Encoder
+ * @see EngineIODecoder
+ * @see EngineIOEncoder
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
@@ -18,7 +18,7 @@ public interface EngineIO {
      *
      * <p>用于 V4 协议中多个数据包 Payload 的分隔标识</p>
      */
-    byte V4_RECORD_SEPARATOR = 0x1E;
+    byte V4_RECORD_SEPARATOR = 0x001E;
 
     /**
      * 检查当前编解码器是否支持指定协议版本

@@ -1,6 +1,6 @@
 package com.ccl.engineio.core.codec.impl;
 
-import com.ccl.engineio.core.codec.Encoder;
+import com.ccl.engineio.core.codec.EngineIOEncoder;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
 
@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Engine.IO V4 协议编码器实现
  *
- * <p>实现 {@link Encoder} 接口，负责 V4 版本协议的数据编码。
+ * <p>实现 {@link EngineIOEncoder} 接口，负责 V4 版本协议的数据编码。
  * 支持以下编码方式：
  * <ul>
  *   <li>字符串数据：直接拼接类型字节和 UTF-8 编码的负载数据</li>
@@ -22,12 +22,12 @@ import java.util.List;
  *
  * <p>批量编码时使用 V4 协议记录分隔符（0x1E）连接各数据包</p>
  *
- * @see Encoder
- * @see EngineV4Decoder
+ * @see EngineIOEncoder
+ * @see EngineIODecoderV4
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
-public class EngineV4Encoder implements Encoder {
+public class EngineIOEncoderV4 implements EngineIOEncoder {
 
     /**
      * 编码单个数据包

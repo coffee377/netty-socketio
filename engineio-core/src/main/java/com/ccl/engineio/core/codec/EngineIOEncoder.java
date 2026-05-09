@@ -11,11 +11,11 @@ import java.util.List;
  * <p>负责将 {@link EngineIOPacket} 数据包编码为可传输的字节数据，
  * 支持单个数据包编码和批量 Payload 编码两种模式</p>
  *
- * @see Decoder
+ * @see EngineIODecoder
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
-public interface Encoder extends EngineIO {
+public interface EngineIOEncoder extends EngineIO {
 
     /**
      * 编码单个数据包

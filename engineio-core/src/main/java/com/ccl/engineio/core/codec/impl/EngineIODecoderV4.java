@@ -1,6 +1,6 @@
 package com.ccl.engineio.core.codec.impl;
 
-import com.ccl.engineio.core.codec.Decoder;
+import com.ccl.engineio.core.codec.EngineIODecoder;
 import com.ccl.engineio.core.protocol.DataType;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.core.protocol.EngineVersion;
@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Engine.IO V4 协议解码器实现
  *
- * <p>实现 {@link Decoder} 接口，负责 V4 版本协议的数据解码。
+ * <p>实现 {@link EngineIODecoder} 接口，负责 V4 版本协议的数据解码。
  * 支持以下解码规则：
  * <ul>
  *   <li>'b' 前缀：Base64 编码的二进制数据（作为 MESSAGE 类型）</li>
@@ -24,11 +24,11 @@ import java.util.List;
  * <p>批量解码时使用 V4 协议记录分隔符（0x1E）分割各数据包</p>
  *
  * @author coffee377
- * @see Decoder
- * @see EngineV4Encoder
+ * @see EngineIODecoder
+ * @see EngineIOEncoderV4
  * @since 4.0.0-alpha.0
  */
-public class EngineV4Decoder implements Decoder {
+public class EngineIODecoderV4 implements EngineIODecoder {
 
     /**
      * 检查是否支持指定协议版本
@@ -128,7 +128,7 @@ public class EngineV4Decoder implements Decoder {
             return builder.data(data).build();
         }
 
-        if (firstByte >= EngineIOPacket.Type.OPEN.getStringByte() && firstByte <= EngineIOPacket.Type.NOOP.getStringByte()) {
+        if (firstByte >= EngineIOPacket.Type.OPEN.getByte() && firstByte <= EngineIOPacket.Type.NOOP.getByte()) {
             EngineIOPacket.Type type = EngineIOPacket.Type.fromByte((byte) firstByte);
             if (byteData.length > 1) {
                 byte[] data = new byte[byteData.length - 1];
@@ -182,6 +182,12 @@ public class EngineV4Decoder implements Decoder {
         return result;
     }
 
+    /**
+     * 解码字符串格式数据包
+     *
+     * @param raw 原始字符串
+     * @return 解码后的数据包
+     */
     protected EngineIOPacket<?> decodeString(String raw) {
         if (raw == null || raw.isEmpty()) {
             return null;
