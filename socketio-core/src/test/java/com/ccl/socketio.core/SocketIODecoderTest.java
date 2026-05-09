@@ -1,7 +1,7 @@
 package com.ccl.socketio.core;
 
 import com.ccl.socketio.core.codec.SocketDecoder;
-import com.ccl.socketio.core.codec.impl.SocketIODecoder;
+import com.ccl.socketio.core.codec.impl.SocketIODecoderV5;
 import com.ccl.socketio.core.protocol.SocketPacket;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ class SocketIODecoderTest {
 
     @BeforeEach
     void setUp() {
-        decoder = new SocketIODecoder();
+        decoder = new SocketIODecoderV5();
     }
 
     @Test
