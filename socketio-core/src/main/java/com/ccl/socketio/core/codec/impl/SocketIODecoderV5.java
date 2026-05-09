@@ -1,5 +1,7 @@
 package com.ccl.socketio.core.codec.impl;
 
+import com.ccl.engineio.core.codec.impl.JacksonStringCodec;
+import com.ccl.engineio.core.codec.StringCodec;
 import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.protocol.SocketPacket;
 
@@ -21,12 +23,43 @@ import com.ccl.socketio.core.protocol.SocketPacket;
  * </ul>
  * </p>
  *
- * @see SocketDecoder
- * @see SocketIOEncoder
  * @author coffee377
+ * @see SocketDecoder
+ * @see SocketIOEncoderV5
  * @since 4.0.0-alpha.0
  */
-public class SocketIODecoder implements SocketDecoder {
+public class SocketIODecoderV5 implements SocketDecoder {
+
+    /**
+     * 字符串编解码器，用于 JSON 解析
+     */
+    private final StringCodec stringCodec;
+
+    /**
+     * 构造函数
+     *
+     * @param stringCodec 字符串编解码器
+     */
+    public SocketIODecoderV5(StringCodec stringCodec) {
+        this.stringCodec = stringCodec;
+    }
+
+    /**
+     * 默认构造函数
+     */
+    public SocketIODecoderV5() {
+        this(new JacksonStringCodec());
+    }
+
+    @Override
+    public boolean isSupport(int protocolVersion) {
+        return protocolVersion == 5;
+    }
+
+    @Override
+    public StringCodec getStringCodec() {
+        return stringCodec;
+    }
 
     /**
      * 解码 Socket.IO 数据包
@@ -36,6 +69,20 @@ public class SocketIODecoder implements SocketDecoder {
      * @throws IllegalArgumentException 当数据包格式无效时
      */
     public SocketPacket<?> decode(String raw) {
+        return decode(raw, Object.class);
+    }
+
+    /**
+     * 解码 Socket.IO 数据包为指定类型
+     *
+     * @param raw   原始字符串数据
+     * @param clazz 目标数据类型
+     * @param <T>   目标类型
+     * @return 解析后的数据包实例，raw 为空时返回 null
+     * @throws IllegalArgumentException 当数据包格式无效时
+     */
+    @SuppressWarnings("unchecked")
+    public <T> SocketPacket<T> decode(String raw, Class<T> clazz) {
         if (raw == null || raw.isEmpty()) return null;
         int i = 0;
         int length = raw.length();
@@ -69,7 +116,7 @@ public class SocketIODecoder implements SocketDecoder {
             builder.namespace("/");
         }
 
-        if (length > i + 1){
+        if (length > i + 1) {
             char next = raw.charAt(i + 1);
             if (Character.getNumericValue(next) > -1) {
                 StringBuilder id = new StringBuilder();
@@ -86,16 +133,21 @@ public class SocketIODecoder implements SocketDecoder {
                 try {
                     long l = Long.parseLong(id.toString());
                     builder.ackId(l);
-                } catch (NumberFormatException e){
+                } catch (NumberFormatException e) {
                     throw new IllegalArgumentException("invalid payload");
                 }
             }
         }
 
-        if (length > i + 1){
-
+        if (length > i + 1) {
+            String json = raw.substring(i + 1);
+            StringCodec codec = getStringCodec();
+            if (codec != null) {
+                T data = getStringCodec().deserialize(json, clazz);
+                builder.data(data);
+            }
         }
 
-        return builder.build();
+        return (SocketPacket<T>) builder.build();
     }
 }

@@ -1,5 +1,6 @@
 package com.ccl.socketio.core.codec.impl;
 
+import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.codec.SocketEncoder;
 import com.ccl.socketio.core.protocol.SocketPacket;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,13 +26,16 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  * </ul>
  * </p>
  *
- * @see SocketDecoder
- * @see SocketIODecoder
  * @author coffee377
  * @since 4.0.0-alpha.0
+ * @see SocketDecoder
+ * @see SocketIODecoderV5
  */
-public class SocketIOEncoder implements SocketEncoder {
+public class SocketIOEncoderV5 implements SocketEncoder {
 
+    /**
+     * Jackson ObjectMapper，用于 JSON 序列化
+     */
     private final ObjectMapper mapper = new ObjectMapper();
 
     /**
@@ -51,7 +55,13 @@ public class SocketIOEncoder implements SocketEncoder {
 
         String nsp = packet.getNamespace();
         if (nsp != null && !nsp.isEmpty() && !"/".equals(nsp)) {
-            sb.append(nsp);
+            if (nsp.startsWith("/")) {
+                sb.append(nsp);
+            } else {
+                sb.append('/');
+                sb.append(nsp);
+            }
+
             sb.append(",");
         }
 
