@@ -1,9 +1,12 @@
 package com.ccl.socketio.core.codec.impl;
 
+import com.ccl.engineio.core.codec.Codec;
+import com.ccl.engineio.core.codec.impl.JacksonCodec;
 import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.codec.SocketEncoder;
+import com.ccl.socketio.core.json.ByteArraySerializer;
+import com.ccl.socketio.core.json.SocketIOJsonModule;
 import com.ccl.socketio.core.protocol.SocketPacket;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_ACK;
 import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
@@ -14,7 +17,6 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  * <p>实现 {@link SocketEncoder} 接口，将 {@link SocketPacket} 编码为 Socket.IO 协议的字符串格式。
  * 编码后格式：
  * <pre>[type][attachments][namespace][ackId][JSON data]</pre>
- * </p>
  *
  * <p>编码规则：
  * <ul>
@@ -24,7 +26,9 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  *   <li>有 ackId：追加数字</li>
  *   <li>有 data：JSON 序列化后追加</li>
  * </ul>
- * </p>
+ *
+ * <p>使用 {@link SocketIOJsonModule} 自定义序列化：
+ * Event 输出为 JSON 数组，byte[] 输出为二进制占位对象。
  *
  * @author coffee377
  * @since 4.0.0-alpha.0
@@ -33,17 +37,13 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  */
 public class SocketIOEncoderV5 implements SocketEncoder {
 
-    /**
-     * Jackson ObjectMapper，用于 JSON 序列化
-     */
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final Codec codec;
 
-    /**
-     * 编码 Socket.IO 数据包
-     *
-     * @param packet 数据包实例
-     * @return 编码后的字符串
-     */
+    public SocketIOEncoderV5() {
+        this.codec = new JacksonCodec(new SocketIOJsonModule());
+    }
+
+    @Override
     public String encode(SocketPacket<?> packet) {
         StringBuilder sb = new StringBuilder();
         sb.append(packet.getType().getValue());
@@ -70,12 +70,8 @@ public class SocketIOEncoderV5 implements SocketEncoder {
         }
 
         if (packet.getData() != null) {
-            try {
-                String s = mapper.writeValueAsString(packet.getData());
-                sb.append(s);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            String data = codec.serializeValueAsString(packet.getData());
+            sb.append(data);
         }
 
         return sb.toString();
