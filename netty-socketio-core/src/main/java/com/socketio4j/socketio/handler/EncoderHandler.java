@@ -69,15 +69,35 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+/**
+ * 出站编码处理器，将 HttpMessage 编码为 HTTP 响应或 WebSocket 帧
+ *
+ * <p>支持 HTTP 长轮询和 WebSocket 两种传输方式的编码输出，处理数据包的分片发送
+ */
 @Sharable
 public class EncoderHandler extends ChannelOutboundHandlerAdapter {
 
     private static final byte[] OK = "ok".getBytes(CharsetUtil.UTF_8);
 
+    /**
+     * Channel 属性键：请求来源
+     */
     public static final AttributeKey<String> ORIGIN = AttributeKey.valueOf("origin");
+    /**
+     * Channel 属性键：用户代理
+     */
     public static final AttributeKey<String> USER_AGENT = AttributeKey.valueOf("userAgent");
+    /**
+     * Channel 属性键：是否使用 Base64 编码
+     */
     public static final AttributeKey<Boolean> B64 = AttributeKey.valueOf("b64");
+    /**
+     * Channel 属性键：JSONP 索引
+     */
     public static final AttributeKey<Integer> JSONP_INDEX = AttributeKey.valueOf("jsonpIndex");
+    /**
+     * Channel 属性键：是否已写入一次
+     */
     public static final AttributeKey<Boolean> WRITE_ONCE = AttributeKey.valueOf("writeOnce");
 
     private static final Logger log = LoggerFactory.getLogger(EncoderHandler.class);
@@ -87,6 +107,13 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
     private String version;
     private Configuration configuration;
 
+    /**
+     * 构造 EncoderHandler
+     *
+     * @param configuration 配置
+     * @param encoder       数据包编码器
+     * @throws IOException 读取版本信息时可能抛出
+     */
     public EncoderHandler(Configuration configuration, PacketEncoder encoder) throws IOException {
         this.encoder = encoder;
         this.configuration = configuration;
@@ -96,6 +123,11 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
         }
     }
 
+    /**
+     * 从 MANIFEST.MF 中读取应用版本号
+     *
+     * @throws IOException 读取 Manifest 时可能抛出
+     */
     private void readVersion() throws IOException {
         Enumeration<URL> resources = getClass().getClassLoader().getResources("META-INF/MANIFEST.MF");
         while (resources.hasMoreElements()) {
@@ -116,6 +148,13 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
         }
     }
 
+    /**
+     * 写入 XHR 预检响应
+     *
+     * @param msg     XHR Options 消息
+     * @param ctx     ChannelHandlerContext
+     * @param promise ChannelPromise
+     */
     private void write(XHROptionsMessage msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         HttpResponse res = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
 
@@ -130,12 +169,29 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
         sendMessage(msg, ctx.channel(), out, res, promise);
     }
 
+    /**
+     * 写入 XHR POST 响应
+     *
+     * @param msg     XHR POST 消息
+     * @param ctx     ChannelHandlerContext
+     * @param promise ChannelPromise
+     */
     private void write(XHRPostMessage msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         ByteBuf out = encoder.allocateBuffer(ctx.alloc());
         out.writeBytes(OK);
         sendMessage(msg, ctx.channel(), out, "text/html", promise, HttpResponseStatus.OK);
     }
 
+    /**
+     * 发送带有指定 Content-Type 和状态码的 HTTP 响应
+     *
+     * @param msg     响应消息
+     * @param channel Channel
+     * @param out      响应体 ByteBuf
+     * @param type     Content-Type
+     * @param promise  ChannelPromise
+     * @param status   HTTP 状态码
+     */
     private void sendMessage(HttpMessage msg, Channel channel, ByteBuf out, String type, ChannelPromise promise, HttpResponseStatus status) {
         HttpResponse res = new DefaultHttpResponse(HTTP_1_1, status);
 
@@ -160,6 +216,15 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
         sendMessage(msg, channel, out, res, promise);
     }
 
+    /**
+     * 发送 HTTP 响应消息体
+     *
+     * @param msg     响应消息
+     * @param channel Channel
+     * @param out      响应体 ByteBuf
+     * @param res     HTTP 响应头
+     * @param promise ChannelPromise
+     */
     private void sendMessage(HttpMessage msg, Channel channel, ByteBuf out, HttpResponse res, ChannelPromise promise) {
         channel.write(res);
 
@@ -179,6 +244,15 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
 
         channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT, promise).addListener(ChannelFutureListener.CLOSE);
     }
+
+    /**
+     * 发送 HTTP 错误响应
+     *
+     * @param errorMsg 错误消息
+     * @param ctx      ChannelHandlerContext
+     * @param promise  ChannelPromise
+     * @throws IOException 序列化错误数据时可能抛出
+     */
     private void sendError(HttpErrorMessage errorMsg, ChannelHandlerContext ctx, ChannelPromise promise) throws IOException {
         if (log.isDebugEnabled()) {
             log.debug("Sending HTTP error response, sessionId: {}, status: {}", 
@@ -192,6 +266,12 @@ public class EncoderHandler extends ChannelOutboundHandlerAdapter {
         sendMessage(errorMsg, ctx.channel(), encBuf, "application/json", promise, HttpResponseStatus.BAD_REQUEST);
     }
 
+    /**
+     * 添加跨域和版本响应头
+     *
+     * @param origin 请求来源
+     * @param res    HTTP 响应
+     */
     private void addOriginHeaders(String origin, HttpResponse res) {
         if (version != null) {
             res.headers().add(HttpHeaderNames.SERVER, version);

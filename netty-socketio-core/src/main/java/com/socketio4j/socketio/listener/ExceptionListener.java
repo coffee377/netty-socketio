@@ -22,20 +22,68 @@ import com.socketio4j.socketio.SocketIOClient;
 
 import io.netty.channel.ChannelHandlerContext;
 
+/**
+ * 异常监听器，定义各生命周期阶段异常处理的回调接口
+ */
 public interface ExceptionListener {
 
+    /**
+     * 事件处理异常时调用
+     *
+     * @param e      异常
+     * @param args   事件参数
+     * @param client 客户端
+     */
     void onEventException(Exception e, List<Object> args, SocketIOClient client);
 
+    /**
+     * 断开处理异常时调用
+     *
+     * @param e      异常
+     * @param client 客户端
+     */
     void onDisconnectException(Exception e, SocketIOClient client);
 
+    /**
+     * 连接处理异常时调用
+     *
+     * @param e      异常
+     * @param client 客户端
+     */
     void onConnectException(Exception e, SocketIOClient client);
 
+    /**
+     * Ping 处理异常时调用
+     *
+     * @deprecated 由 {@link #onPongException(Exception, SocketIOClient)} 替代
+     * @param e      异常
+     * @param client 客户端
+     */
     @Deprecated
     void onPingException(Exception e, SocketIOClient client);
 
+    /**
+     * Pong 处理异常时调用
+     *
+     * @param e      异常
+     * @param client 客户端
+     */
     void onPongException(Exception e, SocketIOClient client);
 
+    /**
+     * Netty pipeline 异常捕获
+     *
+     * @param ctx ChannelHandlerContext
+     * @param e   异常
+     * @return 是否已处理
+     */
     boolean exceptionCaught(ChannelHandlerContext ctx, Throwable e) throws Exception;
 
+    /**
+     * 认证异常时调用
+     *
+     * @param e      异常
+     * @param client 客户端
+     */
     void onAuthException(Throwable e, SocketIOClient client);
 }

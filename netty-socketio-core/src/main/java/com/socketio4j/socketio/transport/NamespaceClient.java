@@ -35,6 +35,12 @@ import com.socketio4j.socketio.protocol.EngineIOVersion;
 import com.socketio4j.socketio.protocol.Packet;
 import com.socketio4j.socketio.protocol.PacketType;
 
+/**
+ * 命名空间客户端
+ *
+ * <p>SocketIOClient 的实现，将客户端与特定命名空间关联，
+ * 委托底层 ClientHead 进行实际的消息发送和会话管理
+ */
 public class NamespaceClient implements SocketIOClient {
 
     private static final Logger log = LoggerFactory.getLogger(NamespaceClient.class);
@@ -49,6 +55,11 @@ public class NamespaceClient implements SocketIOClient {
         namespace.addClient(this);
     }
 
+    /**
+     * 获取底层基础客户端
+     *
+     * @return 基础客户端
+     */
     public ClientHead getBaseClient() {
         return baseClient;
     }
@@ -120,6 +131,9 @@ public class NamespaceClient implements SocketIOClient {
         baseClient.send(packet.withNsp(namespace.getName(), baseClient.getEngineIOVersion()));
     }
 
+    /**
+     * 处理命名空间客户端断开连接
+     */
     public void onDisconnect() {
         disconnected.set(true);
 

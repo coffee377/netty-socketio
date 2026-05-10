@@ -16,15 +16,16 @@
  */
 package com.socketio4j.socketio.store.event;
 
-/**
- * @author https://github.com/sanjomo
- * @date 09/12/25 11:15 pm
- */
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 事件发布配置
+ *
+ * <p>定义默认发布模式及各事件类型的覆盖模式
+ */
 public class PublishConfig {
 
     private final PublishMode defaultMode;
@@ -42,25 +43,51 @@ public class PublishConfig {
         this.overrides.putAll(overrides);
     }
 
+    /**
+     * 获取指定事件类型的发布模式
+     *
+     * @param type 事件类型
+     * @return 发布模式
+     */
     public PublishMode get(EventType type) {
         Objects.requireNonNull(type, "type must not be null");
         return overrides.getOrDefault(type, defaultMode);
     }
 
-    // FACTORY HELPERS
-
+    /**
+     * 创建默认可靠模式的发布配置
+     *
+     * @return 发布配置
+     */
     public static PublishConfig allReliable() {
         return new PublishConfig(PublishMode.RELIABLE, Collections.emptyMap());
     }
 
+    /**
+     * 创建默认不可靠模式的发布配置
+     *
+     * @return 发布配置
+     */
     public static PublishConfig allUnreliable() {
         return new PublishConfig(PublishMode.UNRELIABLE, Collections.emptyMap());
     }
 
+    /**
+     * 创建可靠模式并指定覆盖规则的发布配置
+     *
+     * @param overrides 事件类型覆盖规则
+     * @return 发布配置
+     */
     public static PublishConfig allReliable(Map<EventType, PublishMode> overrides) {
         return new PublishConfig(PublishMode.RELIABLE, overrides);
     }
 
+    /**
+     * 创建不可靠模式并指定覆盖规则的发布配置
+     *
+     * @param overrides 事件类型覆盖规则
+     * @return 发布配置
+     */
     public static PublishConfig allUnreliable(Map<EventType, PublishMode> overrides) {
         return new PublishConfig(PublishMode.UNRELIABLE, overrides);
     }

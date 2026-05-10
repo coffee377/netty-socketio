@@ -16,7 +16,12 @@ public enum DataType {
     /**
      * 二进制数据
      */
-    BINARY(1);
+    BINARY(1),
+
+    /**
+     * 对象数据（JSON 格式）
+     */
+    OBJECT(2);
 
     /**
      * 数据类型数值

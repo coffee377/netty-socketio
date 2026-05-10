@@ -33,6 +33,11 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+/**
+ * 错误 URL 处理器，拦截并拒绝非法的 Socket.IO 上下文请求
+ *
+ * <p>当请求路径不匹配配置的 Socket.IO 路径时，返回 400 错误并关闭连接
+ */
 @Sharable
 public class WrongUrlHandler extends ChannelInboundHandlerAdapter {
 

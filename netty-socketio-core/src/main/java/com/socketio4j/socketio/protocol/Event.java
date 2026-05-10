@@ -18,6 +18,9 @@ package com.socketio4j.socketio.protocol;
 
 import java.util.List;
 
+/**
+ * Socket.IO 事件对象，包含事件名称和参数列表
+ */
 public class Event {
 
     private String name;

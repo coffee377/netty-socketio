@@ -5,11 +5,11 @@ import com.ccl.engineio.core.codec.impl.EngineIOEncoderV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.netty.handler.CorsUtil;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.netty.handler.codec.http.*;
+import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,42 +48,36 @@ public class EnginePacketEncoder extends MessageToMessageEncoder<EngineIOPacket<
     protected void encode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
         EngineIOPacket.Type type = msg.getType();
 
+        // TODO: 2026/05/10 19:18 websocket binary
+        byte[] bytes = encoder.encodePacket(msg, false);
+        ByteBuf content = ctx.alloc().buffer().writeBytes(bytes);
+
         if (log.isDebugEnabled()) {
-            log.debug("OUT [{}] {}", type, msg);
+            log.debug("OUT [{}] {}", type, content.toString(CharsetUtil.UTF_8));
         }
+
         switch (type) {
             case OPEN:
-                sendOpenData(ctx, msg, out);
-                return;
+            case MESSAGE:
+                sendResponse(content, out);
+                break;
             case CLOSE:
             case PING:
             case PONG:
-            case MESSAGE:
-                sendMessage(ctx, msg, out);
-                break;
             case UPGRADE:
             case NOOP:
+            default:
+                if (log.isWarnEnabled()) {
+                    log.warn("未处理的类型 {}", type);
+                }
         }
     }
 
-    private void sendOpenData(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) {
-        byte[] bytes = encoder.encodePacket(msg, false);
-        ByteBuf byteBuf = Unpooled.wrappedBuffer(bytes);
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, byteBuf);
+    private void sendResponse(ByteBuf content, List<Object> out) {
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
         response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
         CorsUtil.addCorsHeaders(response, "*");
-        out.add(response);
-    }
-
-    private void sendMessage(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) {
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
-        response.headers().set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
-        CorsUtil.addCorsHeaders(response, "*");
-        // websocket binary
-        byte[] bytes = encoder.encodePacket(msg, false);
-        response.content().writeBytes(bytes);
         out.add(response);
     }
 

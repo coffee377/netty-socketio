@@ -47,6 +47,12 @@ import com.socketio4j.socketio.store.event.EventType;
 import com.socketio4j.socketio.store.event.ListenerRegistration;
 
 
+/**
+ * 基于 Redis Stream 的事件存储实现
+ *
+ * <p>使用 Redis Stream 作为事件消息的持久化存储后端，
+ * 支持事件回放和消息偏移追踪，提供可靠的事件传递
+ */
 public class RedisStreamEventStore implements EventStore {
 
     private static final Logger log =

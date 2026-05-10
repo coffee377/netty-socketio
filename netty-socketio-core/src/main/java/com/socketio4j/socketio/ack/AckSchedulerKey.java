@@ -20,15 +20,32 @@ import java.util.UUID;
 
 import com.socketio4j.socketio.scheduler.SchedulerKey;
 
+/**
+ * ACK 调度器键，扩展 SchedulerKey 以包含 ACK 序号
+ *
+ * <p>用于唯一标识某个客户端某个 ACK 的超时调度任务
+ */
 public class AckSchedulerKey extends SchedulerKey {
 
     private final long index;
 
+    /**
+     * 构造 AckSchedulerKey 实例
+     *
+     * @param type      调度键类型
+     * @param sessionId 客户端会话 ID
+     * @param index     ACK 序号
+     */
     public AckSchedulerKey(Type type, UUID sessionId, long index) {
         super(type, sessionId);
         this.index = index;
     }
 
+    /**
+     * 获取 ACK 序号
+     *
+     * @return ACK 序号
+     */
     public long getIndex() {
         return index;
     }

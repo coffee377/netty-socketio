@@ -28,39 +28,37 @@ import com.socketio4j.socketio.store.event.BaseStoreFactory;
 import com.socketio4j.socketio.store.event.EventStore;
 
 /**
- * A {@code StoreFactory} implementation that provides per-session in-memory storage.
- * <p>
- * Session data is stored locally in JVM memory via {@link MemoryStore}. Event propagation
- * is determined entirely by the provided {@link EventStore}. This allows combinations like:
+ * 内存会话存储工厂实现
+ *
+ * <p>会话数据通过 {@link MemoryStore} 存储在本地 JVM 内存中，
+ * 事件传播由 {@link EventStore} 决定，支持混合配置：
  * <ul>
- *     <li>Memory session storage + Kafka event distribution</li>
- *     <li>Memory session storage + Redis Streams event distribution</li>
- *     <li>Memory session storage + in-memory event propagation (local only)</li>
+ *   <li>内存会话 + Kafka 事件分发</li>
+ *   <li>内存会话 + Redis Streams 事件分发</li>
+ *   <li>内存会话 + 内存事件传播（仅本地）</li>
  * </ul>
- * <p>
- * If no {@link EventStore} is supplied, {@link MemoryEventStore} is used by default.
+ * 未指定 EventStore 时默认使用 {@link MemoryEventStore}
  */
 public class MemoryStoreFactory extends BaseStoreFactory {
 
     private final EventStore eventStore;
 
     /**
-     * Creates a new {@code MemoryStoreFactory} using {@link MemoryEventStore}.
-     * Both session data and events remain local to the JVM.
-     * @apiNote Added in API version {@code 4.0.0}
+     * 创建使用 {@link MemoryEventStore} 的工厂实例
+     *
+     * <p>会话数据和事件均限制在本地 JVM 中
      */
     public MemoryStoreFactory() {
         this.eventStore = new MemoryEventStore();
     }
 
     /**
-     * Creates a new {@code MemoryStoreFactory} using the provided {@link EventStore}.
-     * Session data remains local, but event propagation depends on the given implementation.
+     * 创建使用指定 EventStore 的工厂实例
      *
-     * @apiNote Added in API version {@code 4.0.0}
-     * 
-     * @param eventStore non-null event store
-     * @throws NullPointerException if {@code eventStore} is {@code null}
+     * <p>会话数据保持本地存储，事件传播取决于给定的 EventStore 实现
+     *
+     * @param eventStore 事件存储实现（不能为 null）
+     * @throws NullPointerException eventStore 为 null 时抛出
      */
     public MemoryStoreFactory(@NotNull EventStore eventStore) {
         this.eventStore = Objects.requireNonNull(eventStore, "eventStore can not be null");

@@ -39,6 +39,12 @@ import com.socketio4j.socketio.store.event.EventStoreType;
 import com.socketio4j.socketio.store.event.EventType;
 
 
+/**
+ * 基于 Hazelcast Reliable Topic 的事件存储实现
+ *
+ * <p>使用 Hazelcast 的可靠主题（RingBuffer 支持）作为事件通道，
+ * 提供持久化的事件发布/订阅能力
+ */
 public class HazelcastPubSubRingBufferEventStore implements EventStore {
 
     private final HazelcastInstance hazelcastPub;

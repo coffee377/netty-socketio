@@ -21,6 +21,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.socketio4j.socketio.store.Store;
 
+/**
+ * 内存会话存储实现
+ *
+ * <p>基于 ConcurrentHashMap 的本地内存存储，数据仅存在于当前 JVM 中
+ */
 public class MemoryStore implements Store {
 
     private final Map<String, Object> store = new ConcurrentHashMap<>();

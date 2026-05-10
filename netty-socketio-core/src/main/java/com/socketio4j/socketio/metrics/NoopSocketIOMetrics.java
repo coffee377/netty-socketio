@@ -16,72 +16,63 @@
  */
 package com.socketio4j.socketio.metrics;
 
+/**
+ * 空操作 SocketIOMetrics 实现，所有方法均为空
+ *
+ * <p>当未配置指标收集时使用此实现，避免空指针检查
+ */
 final class NoopSocketIOMetrics implements SocketIOMetrics {
 
     static final NoopSocketIOMetrics INSTANCE = new NoopSocketIOMetrics();
 
     private NoopSocketIOMetrics() {}
 
-
     @Override
     public void eventReceived(String namespace) {
-
     }
 
     @Override
     public void eventHandled(String namespace, long durationNanos) {
-
     }
 
     @Override
     public void eventFailed(String namespace) {
-
     }
 
     @Override
     public void eventSent(String namespace, int recipients) {
-
     }
 
     @Override
     public void unknownEventReceived(String namespace) {
-
     }
 
     @Override
     public void unknownEventNames(String namespace, String eventName) {
-
     }
 
     @Override
     public void ackSent(String namespace, long latencyNanos) {
-
     }
 
     @Override
     public void ackMissing(String namespace) {
-
     }
 
     @Override
     public void connect(String namespace) {
-
     }
 
     @Override
     public void disconnect(String namespace) {
-
     }
 
     @Override
     public void roomJoin(String namespace) {
-
     }
 
     @Override
     public void roomLeave(String namespace) {
-
     }
-
 
 }

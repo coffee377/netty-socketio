@@ -1,4 +1,4 @@
-package com.ccl.socketio.netty.listener;
+package com.ccl.socketio.core.listener;
 
 import com.ccl.socketio.core.protocol.SocketPacket;
 

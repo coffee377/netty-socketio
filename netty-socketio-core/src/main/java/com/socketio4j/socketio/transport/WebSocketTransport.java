@@ -61,6 +61,12 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrameAggregator;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 
+/**
+ * WebSocket 传输处理器
+ *
+ * <p>处理基于 WebSocket 的 Engine.IO 传输方式，
+ * 负责 WebSocket 握手、消息收发、协议升级超时管理
+ */
 @Sharable
 public class WebSocketTransport extends ChannelInboundHandlerAdapter {
 
@@ -171,9 +177,9 @@ public class WebSocketTransport extends ChannelInboundHandlerAdapter {
     }
 
     /**
-     * Deliver engine/socket.io payload to {@link com.socketio4j.socketio.handler.InPacketHandler} without
-     * re-entering the pipeline from the head (avoids passing {@link PacketsMessage} through {@code SslHandler}
-     * and the HTTP/WebSocket frame decoder again).
+     * 将数据包消息直接发送给数据包处理器，避免重入管道头部
+     *
+     * <p>避免 {@link PacketsMessage} 再次经过 SslHandler 和 HTTP/WebSocket 帧解码器
      */
     private static void firePacketsMessageToPacketHandler(ChannelHandlerContext ctx, PacketsMessage packetsMessage) {
         // After WebSocket handshake, Netty replaces HttpRequestDecoder with WebSocket13FrameDecoder named "wsdecoder".

@@ -23,12 +23,9 @@ import java.lang.annotation.Target;
 
 
 /**
- * Annotation that defines <b>Connect</b> handler.
+ * 连接事件处理器注解
  *
- * Arguments in method:
- *
- *   - SocketIOClient (required)
- *
+ * <p>标记处理客户端连接事件的方法，方法需包含 SocketIOClient 参数
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

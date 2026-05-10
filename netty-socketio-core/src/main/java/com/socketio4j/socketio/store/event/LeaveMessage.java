@@ -18,6 +18,11 @@ package com.socketio4j.socketio.store.event;
 
 import java.util.UUID;
 
+/**
+ * 离开房间消息
+ *
+ * <p>当客户端离开指定房间时发布，包含会话 ID、房间名和命名空间
+ */
 public class LeaveMessage extends EventMessage {
 
     private static final long serialVersionUID = -6179894660576075280L;

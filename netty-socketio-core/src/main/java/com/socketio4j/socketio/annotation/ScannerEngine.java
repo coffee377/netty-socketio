@@ -27,6 +27,12 @@ import org.slf4j.LoggerFactory;
 
 import com.socketio4j.socketio.namespace.Namespace;
 
+/**
+ * 注解扫描引擎
+ *
+ * <p>扫描对象类上的注解（OnConnect、OnDisconnect、OnEvent），
+ * 自动注册对应的事件监听器到命名空间
+ */
 public class ScannerEngine {
 
     private static final Logger log = LoggerFactory.getLogger(ScannerEngine.class);

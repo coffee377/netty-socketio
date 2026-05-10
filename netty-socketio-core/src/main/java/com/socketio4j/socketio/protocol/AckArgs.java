@@ -18,6 +18,9 @@ package com.socketio4j.socketio.protocol;
 
 import java.util.List;
 
+/**
+ * 确认回调参数，包含服务器返回的确认数据列表
+ */
 public class AckArgs {
 
     private List<Object> args;

@@ -10,6 +10,19 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Engine.IO WebSocket 传输处理器
+ *
+ * <p>处理 WebSocket 帧消息，支持文本帧和二进制帧：
+ * <ul>
+ *   <li>文本帧：解析 Engine.IO 协议数据包，支持 PING/PONG、升级确认和消息转发</li>
+ *   <li>二进制帧：直接透传给下游处理器</li>
+ *   <li>处理 WebSocket 握手完成事件</li>
+ * </ul>
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public class WebSocketTransport extends SimpleChannelInboundHandler<WebSocketFrame>  {
     private final static Logger log = LoggerFactory.getLogger(WebSocketTransport.class);
 

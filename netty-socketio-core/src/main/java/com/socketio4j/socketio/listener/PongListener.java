@@ -18,8 +18,16 @@ package com.socketio4j.socketio.listener;
 
 import com.socketio4j.socketio.SocketIOClient;
 
+/**
+ * Pong 事件监听器，处理客户端回复的 Pong 数据包
+ */
 public interface PongListener {
 
+    /**
+     * 收到 Pong 数据包时调用
+     *
+     * @param client 客户端实例
+     */
     void onPong(SocketIOClient client);
 
 }

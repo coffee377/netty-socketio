@@ -37,6 +37,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = JoinMessage.class, name = "JOIN"),
         @JsonSubTypes.Type(value = LeaveMessage.class, name = "LEAVE")
 })
+/**
+ * 事件消息基类
+ *
+ * <p>所有跨节点传播的事件消息的抽象基类，包含节点 ID 和偏移量字段，
+ * 支持 Jackson 多态序列化（通过 type 字段区分具体子类）
+ */
 public abstract class EventMessage implements Serializable {
 
     private static final long serialVersionUID = -8789343104393884987L;

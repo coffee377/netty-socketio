@@ -18,9 +18,19 @@ package com.socketio4j.socketio.listener;
 
 import com.socketio4j.socketio.SocketIOClient;
 
+/**
+ * Ping 事件监听器
+ *
+ * @deprecated 从 v4 开始服务器主动发送 Ping，Ping 监听不再有意义，使用 {@link PongListener} 替代
+ */
 @Deprecated
 public interface PingListener {
 
+    /**
+     * 收到 Ping 数据包时调用
+     *
+     * @param client 客户端实例
+     */
     void onPing(SocketIOClient client);
 
 }

@@ -17,8 +17,12 @@
 package com.socketio4j.socketio.store.event;
 
 /**
- * @author https://github.com/sanjomo
- * @date 29/11/25 2:12 pm
+ * 事件存储类型枚举
+ *
+ * <p>LOCAL：单节点内存存储
+ * PUBSUB：广播式非持久存储
+ * STREAM：广播式可回放存储
+ * BROKER：基于队列的点对点存储
  */
 public enum EventStoreType {
     LOCAL,   // Single-node, in-memory

@@ -22,12 +22,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that defines <b>Disconnect</b> handler.
+ * 断开连接事件处理器注解
  *
- * Arguments in method:
- *
- *   - SocketIOClient (required)
- *
+ * <p>标记处理客户端断开连接事件的方法，方法需包含 SocketIOClient 参数
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

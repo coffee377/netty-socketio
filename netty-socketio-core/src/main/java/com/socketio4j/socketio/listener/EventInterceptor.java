@@ -21,6 +21,18 @@ import java.util.List;
 import com.socketio4j.socketio.AckRequest;
 import com.socketio4j.socketio.transport.NamespaceClient;
 
+/**
+ * 事件拦截器，在事件分发前对事件进行拦截处理
+ */
 public interface EventInterceptor {
+
+    /**
+     * 事件到达时调用
+     *
+     * @param client    命名空间客户端
+     * @param eventName 事件名称
+     * @param args      事件参数列表
+     * @param ackRequest ACK 请求
+     */
     void onEvent(NamespaceClient client, String eventName, List<Object> args, AckRequest ackRequest);
 }

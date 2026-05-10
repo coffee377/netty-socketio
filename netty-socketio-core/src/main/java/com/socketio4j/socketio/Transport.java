@@ -19,9 +19,14 @@ package com.socketio4j.socketio;
 import com.socketio4j.socketio.transport.PollingTransport;
 import com.socketio4j.socketio.transport.WebSocketTransport;
 
+/**
+ * Socket.IO 传输方式枚举
+ */
 public enum Transport {
 
+    /** WebSocket 传输 */
     WEBSOCKET(WebSocketTransport.NAME),
+    /** HTTP 长轮询传输 */
     POLLING(PollingTransport.NAME);
 
     private final String value;
@@ -30,6 +35,11 @@ public enum Transport {
         this.value = value;
     }
 
+    /**
+     * 获取传输方式的字符串标识
+     *
+     * @return 传输方式名称
+     */
     public String getValue() {
         return value;
     }

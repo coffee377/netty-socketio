@@ -18,11 +18,23 @@ package com.socketio4j.socketio.misc;
 
 import java.util.Iterator;
 
+/**
+ * 复合迭代器，按顺序依次遍历多个子迭代器
+ *
+ * <p>当前子迭代器遍历完毕后自动切换到下一个，直到所有子迭代器耗尽
+ *
+ * @param <T> 元素类型
+ */
 public class CompositeIterator<T> implements Iterator<T> {
 
     private final Iterator<Iterator<T>> listIterator;
     private Iterator<T> currentIterator;
-    
+
+    /**
+     * 构造复合迭代器
+     *
+     * @param listIterator 子迭代器的迭代器
+     */
     public CompositeIterator(Iterator<Iterator<T>> listIterator) {
         this.currentIterator = null;
         this.listIterator = listIterator;
@@ -40,7 +52,7 @@ public class CompositeIterator<T> implements Iterator<T> {
             }
             return false;
         }
-        return true; // can only be reached when currentIterator.hasNext() is true
+        return true;
     }
 
     @Override

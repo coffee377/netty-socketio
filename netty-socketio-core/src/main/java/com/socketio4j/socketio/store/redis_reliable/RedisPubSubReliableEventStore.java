@@ -44,6 +44,12 @@ import com.socketio4j.socketio.store.event.EventStoreType;
 import com.socketio4j.socketio.store.event.EventType;
 import com.socketio4j.socketio.store.event.PublishMode;
 
+/**
+ * 基于 Redis Reliable Topic 的可靠事件存储实现
+ *
+ * <p>结合 Redis Stream 的持久化能力和 Redisson Reliable Topic 的可靠发布/订阅，
+ * 支持自动裁剪过期流数据以防止无限制增长
+ */
 public class RedisPubSubReliableEventStore implements EventStore {
 
     private final RedissonClient redissonPub;

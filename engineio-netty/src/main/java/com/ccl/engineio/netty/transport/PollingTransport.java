@@ -77,7 +77,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         FullHttpResponse response = new DefaultFullHttpResponse(
                 HttpVersion.HTTP_1_1, HttpResponseStatus.OK, content
         );
-        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain");
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
         addOriginHeaders(origin, response);
         HttpUtil.setContentLength(response, response.content().readableBytes());
         ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
@@ -259,6 +259,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         wakeupPendingGet(sid, "*");
     }
 
+    /**
+     * 挂起的 GET 请求封装
+     *
+     * <p>包含当前挂起请求的 Channel 上下文、异步 Promise、超时定时任务和所属 Session ID。
+     * 当新的消息到达或超时时，通过 Promise 机制唤醒并响应请求。
+     */
     public static class PendingRequest {
         private final ChannelHandlerContext ctx;
         // 异步响应 Promise
@@ -269,6 +275,14 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         private final String sessionId;
 
 
+        /**
+         * 创建挂起的 GET 请求
+         *
+         * @param ctx         Channel 处理器上下文
+         * @param promise     异步响应 Promise
+         * @param timeoutTask 超时定时任务
+         * @param sessionId   所属 Session ID
+         */
         public PendingRequest(ChannelHandlerContext ctx, ChannelPromise promise, ScheduledFuture<?> timeoutTask, String sessionId) {
             this.ctx = ctx;
             this.promise = promise;
@@ -276,18 +290,38 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
             this.sessionId = sessionId;
         }
 
+        /**
+         * 获取 Channel 处理器上下文
+         *
+         * @return Channel 处理器上下文
+         */
         public ChannelHandlerContext getCtx() {
             return ctx;
         }
 
+        /**
+         * 获取异步响应 Promise
+         *
+         * @return ChannelPromise 实例
+         */
         public ChannelPromise getPromise() {
             return promise;
         }
 
+        /**
+         * 获取超时定时任务
+         *
+         * @return 超时定时任务
+         */
         public ScheduledFuture<?> getTimeoutTask() {
             return timeoutTask;
         }
 
+        /**
+         * 获取所属 Session ID
+         *
+         * @return 会话 ID
+         */
         public String getSessionId() {
             return sessionId;
         }

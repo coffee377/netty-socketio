@@ -115,6 +115,12 @@ public class ParserV4 implements Parser {
         return decoder.decodePayload(data);
     }
 
+    /**
+     * 检查是否支持指定协议版本
+     *
+     * @param protocolVersion 协议版本号
+     * @return 仅当协议版本为 V4 时返回 true
+     */
     @Override
     public boolean isSupport(int protocolVersion) {
         return EngineVersion.V4.getValue() == protocolVersion;

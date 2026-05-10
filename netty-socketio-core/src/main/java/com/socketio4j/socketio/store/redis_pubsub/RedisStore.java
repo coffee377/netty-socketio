@@ -24,6 +24,12 @@ import org.redisson.api.RedissonClient;
 import com.socketio4j.socketio.store.Store;
 
 
+/**
+ * 基于 Redis 的分布式会话存储实现
+ *
+ * <p>使用 Redisson RMap 作为后端存储，每个会话对应一个独立的 map，
+ * 支持跨节点的数据共享
+ */
 public class RedisStore implements Store {
 
     private final RMap<String, Object> map;

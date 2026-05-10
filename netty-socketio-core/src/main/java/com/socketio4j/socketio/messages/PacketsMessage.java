@@ -22,26 +22,53 @@ import com.socketio4j.socketio.handler.ClientHead;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
 
+/**
+ * 入站数据包消息，包装解码前的原始字节数据和关联的客户端信息
+ *
+ * <p>实现 ReferenceCounted 接口，用于 Netty 的引用计数内存管理
+ */
 public class PacketsMessage implements ReferenceCounted {
 
     private final ClientHead client;
     private final ByteBuf content;
     private final Transport transport;
 
+    /**
+     * 构造 PacketsMessage
+     *
+     * @param client    客户端头部
+     * @param content   数据包字节内容
+     * @param transport 传输方式
+     */
     public PacketsMessage(ClientHead client, ByteBuf content, Transport transport) {
         this.client = client;
         this.content = content;
         this.transport = transport;
     }
 
+    /**
+     * 获取传输方式
+     *
+     * @return Transport
+     */
     public Transport getTransport() {
         return transport;
     }
 
+    /**
+     * 获取客户端头部
+     *
+     * @return ClientHead
+     */
     public ClientHead getClient() {
         return client;
     }
 
+    /**
+     * 获取数据包字节内容
+     *
+     * @return ByteBuf
+     */
     public ByteBuf getContent() {
         return content;
     }

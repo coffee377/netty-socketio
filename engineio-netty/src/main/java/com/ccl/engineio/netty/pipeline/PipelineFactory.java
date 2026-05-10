@@ -10,10 +10,14 @@ import io.netty.handler.codec.http.HttpServerCodec;
 
 /**
  * Pipeline 工厂
- * 负责初始化 Netty Channel Pipeline，按照协议栈顺序添加各层处理器：
- * HTTP Codec -> Engine.IO 握手 -> WebSocket 升级/Polling -> 编解码 -> 心跳 -> Session 管理
- * <p>
- * WebSocketServerProtocolHandler 会在握手成功且 transport=websocket 时动态添加，不在初始 pipeline 中。
+ *
+ * <p>负责初始化 Netty Channel Pipeline，按照协议栈顺序添加各层处理器：
+ * HTTP Codec → Engine.IO 握手 → WebSocket 升级/Polling → 编解码 → 心跳 → Session 管理
+ *
+ * <p>WebSocketServerProtocolHandler 会在握手成功且 transport=websocket 时动态添加，不在初始 pipeline 中
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
  */
 public class PipelineFactory extends ChannelInitializer<Channel> {
 

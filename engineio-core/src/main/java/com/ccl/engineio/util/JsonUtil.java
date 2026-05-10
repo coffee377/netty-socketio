@@ -10,6 +10,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * JSON 工具类
+ *
+ * <p>提供基于 Jackson 的 JSON 序列化与反序列化快捷操作</p>
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public final class JsonUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -21,6 +29,13 @@ public final class JsonUtil {
     private JsonUtil() {
     }
 
+    /**
+     * 将对象序列化为 JSON 字符串
+     *
+     * @param obj 待序列化的对象
+     * @return JSON 格式字符串
+     * @throws EngineIOException 当序列化失败时
+     */
     public static String toJson(Object obj) {
         try {
             return MAPPER.writeValueAsString(obj);
@@ -29,6 +44,15 @@ public final class JsonUtil {
         }
     }
 
+    /**
+     * 将 JSON 字符串反序列化为指定类型的对象
+     *
+     * @param json  JSON 字符串
+     * @param clazz 目标类型
+     * @param <T>   目标类型
+     * @return 反序列化后的对象实例
+     * @throws EngineIOException 当反序列化失败时
+     */
     public static <T> T fromJson(String json, Class<T> clazz) {
         try {
             return MAPPER.readValue(json, clazz);

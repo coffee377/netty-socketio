@@ -29,6 +29,12 @@ import net.jpountz.xxhash.XXHash64;
 import net.jpountz.xxhash.XXHashFactory;
 
 
+/**
+ * 基于 Micrometer 的 SocketIOMetrics 实现，记录事件、ACK、连接、房间和计时等指标
+ *
+ * <p>按命名空间管理指标，使用 Micrometer Counter、Gauge、Timer 等类型。
+ * 支持百分位直方图和百分位摘要两种统计模式
+ */
 public final class MicrometerSocketIOMetrics implements SocketIOMetrics {
 
     private final MeterRegistry registry;
@@ -40,6 +46,13 @@ public final class MicrometerSocketIOMetrics implements SocketIOMetrics {
         t.setDaemon(true);
         return t;
     });
+
+    /**
+     * 将字符串哈希为 long 值，用于未知事件名称的基数估计
+     *
+     * @param key 待哈希的字符串
+     * @return 64 位哈希值
+     */
     private static long hashToLong(String key) {
         byte[] bytes = key.getBytes(StandardCharsets.UTF_8);
         return XX_HASH.hash(bytes, 0, bytes.length, 0);
@@ -47,19 +60,28 @@ public final class MicrometerSocketIOMetrics implements SocketIOMetrics {
 
     /* ===================== Constructors ===================== */
 
-    /** Default: percentile summary (single-JVM friendly) */
+    /** 默认构造，使用百分位摘要模式（单 JVM 友好） */
     public MicrometerSocketIOMetrics(MeterRegistry registry) {
         this(registry, false);
     }
 
     /**
-     * @param histogramEnabled true = Prometheus histogram (recommended for clusters)
+     * 构造 MicrometerSocketIOMetrics
+     *
+     * @param registry         MeterRegistry
+     * @param histogramEnabled true 启用百分位直方图（推荐集群环境），false 使用百分位摘要
      */
     public MicrometerSocketIOMetrics(MeterRegistry registry, boolean histogramEnabled) {
         Objects.requireNonNull(registry, "registry can not be null");
         this.registry = registry;
         this.histogramEnabled = histogramEnabled;
     }
+
+    /**
+     * 获取 MeterRegistry
+     *
+     * @return MeterRegistry
+     */
     public MeterRegistry getRegistry() {
         return registry;
     }
@@ -68,6 +90,12 @@ public final class MicrometerSocketIOMetrics implements SocketIOMetrics {
 
     private final ConcurrentMap<String, NamespaceMeters> namespaces = new ConcurrentHashMap<>();
 
+    /**
+     * 获取或创建指定命名空间的指标容器
+     *
+     * @param namespace 命名空间
+     * @return NamespaceMeters
+     */
     private NamespaceMeters ns(String namespace) {
         return namespaces.computeIfAbsent(
                 namespace,
@@ -207,10 +235,18 @@ public final class MicrometerSocketIOMetrics implements SocketIOMetrics {
         m.getRoomMembers().getAndUpdate(v -> Math.max(0, v - 1));
     }
 
+    /**
+     * 获取 MeterRegistry
+     *
+     * @return MeterRegistry
+     */
     public MeterRegistry registry() {
         return  registry;
     }
 
+    /**
+     * 关闭并释放执行器资源
+     */
     public void close() {
         executorService.shutdown();
     }

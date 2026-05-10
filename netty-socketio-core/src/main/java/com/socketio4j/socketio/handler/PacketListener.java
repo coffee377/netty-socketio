@@ -32,12 +32,25 @@ import com.socketio4j.socketio.scheduler.SchedulerKey;
 import com.socketio4j.socketio.transport.NamespaceClient;
 import com.socketio4j.socketio.transport.PollingTransport;
 
+/**
+ * 数据包监听器，处理 Engine.IO 和 Socket.IO 协议层的各种数据包类型
+ *
+ * <p>根据数据包类型分发处理逻辑：Ping/Pong 心跳、传输升级、消息事件、ACK 确认等
+ */
 public class PacketListener {
 
     private final NamespacesHub namespacesHub;
     private final AckManager ackManager;
     private final CancelableScheduler scheduler;
 
+    /**
+     * 构造 PacketListener
+     *
+     * @param ackManager        ACK 管理器
+     * @param namespacesHub     命名空间集线器
+     * @param xhrPollingTransport XHR 轮询传输
+     * @param scheduler         可取消的调度器
+     */
     public PacketListener(AckManager ackManager, NamespacesHub namespacesHub, PollingTransport xhrPollingTransport,
             CancelableScheduler scheduler) {
         this.ackManager = ackManager;
@@ -45,6 +58,13 @@ public class PacketListener {
         this.scheduler = scheduler;
     }
 
+    /**
+     * 处理收到的数据包
+     *
+     * @param packet   数据包
+     * @param client   命名空间客户端
+     * @param transport 传输方式
+     */
     public void onPacket(Packet packet, NamespaceClient client, Transport transport) {
         final AckRequest ackRequest = new AckRequest(packet, client);
 

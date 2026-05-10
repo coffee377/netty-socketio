@@ -20,7 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Engine.IO protocol version
+ * Engine.IO 协议版本枚举
+ *
+ * <p>定义支持的协议版本 V2、V3、V4，用于区分不同版本的编解码行为
  */
 public enum EngineIOVersion {
     /**
@@ -55,10 +57,21 @@ public enum EngineIOVersion {
         this.value = value;
     }
 
+    /**
+     * 获取协议版本字符串
+     *
+     * @return 版本字符串
+     */
     public String getValue() {
         return value;
     }
 
+    /**
+     * 根据字符串值获取 Engine.IO 版本枚举
+     *
+     * @param value 版本字符串
+     * @return 对应的版本枚举，无法识别时返回 UNKNOWN
+     */
     public static EngineIOVersion fromValue(String value) {
         EngineIOVersion engineIOVersion = VERSIONS.get(value);
         if (engineIOVersion != null) {

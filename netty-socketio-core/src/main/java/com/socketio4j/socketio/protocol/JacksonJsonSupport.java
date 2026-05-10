@@ -66,6 +66,12 @@ import com.socketio4j.socketio.namespace.Namespace;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 
+/**
+ * 基于 Jackson 的 JSON 序列化支持实现
+ *
+ * <p>提供 Socket.IO 协议所需的事件反序列化、确认参数反序列化、
+ * 字节数组序列化等功能，支持事件类型映射和命名空间隔离
+ */
 public class JacksonJsonSupport implements JsonSupport {
 
     protected class AckArgsDeserializer extends StdDeserializer<AckArgs> {
@@ -109,6 +115,9 @@ public class JacksonJsonSupport implements JsonSupport {
 
     }
 
+    /**
+     * 事件映射键，由命名空间名称和事件名称组成
+     */
     public static class EventKey {
 
         private String namespaceName;
@@ -218,6 +227,12 @@ public class JacksonJsonSupport implements JsonSupport {
 
     }
 
+    /**
+     * 字节数组序列化器
+     *
+     * <p>将 byte[] 序列化为 JSON 占位符对象 {@code {"num": N, "_placeholder": true}}，
+     * 实际数据存储在线程本地列表中，用于二进制附件的延迟加载
+     */
     public static class ByteArraySerializer extends StdSerializer<byte[]> {
 
         private static final long serialVersionUID = 3420082888596468148L;
@@ -279,6 +294,9 @@ public class JacksonJsonSupport implements JsonSupport {
     }
 
 
+    /**
+     * Bean 序列化修改器，注册 ByteArraySerializer 处理 byte[] 类型
+     */
     protected static class ExBeanSerializerModifier extends BeanSerializerModifier {
 
         private final ByteArraySerializer serializer = new ByteArraySerializer();

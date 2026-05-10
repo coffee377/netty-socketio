@@ -25,6 +25,12 @@ import com.socketio4j.socketio.namespace.Namespace;
 
 import io.netty.buffer.ByteBuf;
 
+/**
+ * Socket.IO 协议数据包，表示客户端与服务器之间传输的消息单元
+ *
+ * <p>包含数据包类型、命名空间、确认 ID、附件等核心字段，
+ * 支持 Engine.IO V3/V4 协议版本
+ */
 public class Packet implements Serializable {
 
     private static final long serialVersionUID = 4560159536486711426L;
@@ -71,27 +77,25 @@ public class Packet implements Serializable {
     }
 
     /**
-     * Get packet data
-     * 
-     * @param <T> the type data
-     * 
-     * <pre>
-     * @return <b>json object</b> for PacketType.JSON type
-     * <b>message</b> for PacketType.MESSAGE type
-     * </pre>
+     * 获取数据包数据
+     *
+     * @param <T> 数据类型
+     * @return PacketType.JSON 类型返回 JSON 对象，
+     *         PacketType.MESSAGE 类型返回消息字符串
      */
     public <T> T getData() {
         return (T) data;
     }
 
     /**
-     * Creates a copy of #{@link Packet} with new namespace set
-     * if it differs from current namespace.
-     * Otherwise, returns original object unchanged
+     * 创建当前数据包的命名空间副本
      *
-     * @param namespace
-     * @param engineIOVersion
-     * @return packet
+     * <p>如果指定命名空间与当前不同，创建新数据包并复制所有字段；
+     * 否则返回原对象
+     *
+     * @param namespace       目标命名空间
+     * @param engineIOVersion Engine.IO 版本
+     * @return 新命名空间的数据包或原对象
      */
     public Packet withNsp(String namespace, EngineIOVersion engineIOVersion) {
         if (this.nsp.equalsIgnoreCase(namespace)) {

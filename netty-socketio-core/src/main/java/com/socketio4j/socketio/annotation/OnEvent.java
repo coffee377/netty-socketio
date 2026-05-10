@@ -22,24 +22,23 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that defines <b>Event</b> handler.
- * The value is required, and represents event name.
+ * 事件处理器注解
  *
- * Arguments in method:
+ * <p>标记处理特定 Socket.IO 事件的方法，value 属性指定事件名称
  *
- *   - SocketIOClient (optional)
- *   - AckRequest (optional)
- *   - Event data (optional)
- *
+ * <p>方法参数支持（均为可选）：
+ * - SocketIOClient：发送事件的客户端
+ * - AckRequest：确认请求对象
+ * - 事件数据：一个或多个业务参数
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OnEvent {
 
     /**
-     * Event name
-     * 
-     * @return value
+     * 事件名称
+     *
+     * @return 事件名称
      */
     String value();
 

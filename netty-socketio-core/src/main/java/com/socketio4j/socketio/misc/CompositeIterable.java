@@ -20,19 +20,42 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * 复合 Iterable，将多个 Iterable 组合为一个统一的 Iterable
+ *
+ * <p>支持数组和 List 两种构造方式，迭代时按顺序依次遍历所有子 Iterable
+ *
+ * @param <T> 元素类型
+ */
 public class CompositeIterable<T> implements Iterable<T> {
 
     private List<Iterable<T>> iterablesList;
     private Iterable<T>[] iterables;
 
+    /**
+     * 使用 List 构造复合 Iterable
+     *
+     * @param iterables 子 Iterable 列表
+     */
     public CompositeIterable(List<Iterable<T>> iterables) {
         this.iterablesList = iterables;
     }
 
+    /**
+     * 使用数组构造复合 Iterable
+     *
+     * @param iterables 子 Iterable 数组
+     */
+    @SafeVarargs
     public CompositeIterable(Iterable<T>... iterables) {
         this.iterables = iterables;
     }
 
+    /**
+     * 拷贝构造，引用同一组子 Iterable
+     *
+     * @param iterable 源复合 Iterable
+     */
     public CompositeIterable(CompositeIterable<T> iterable) {
         this.iterables = iterable.iterables;
         this.iterablesList = iterable.iterablesList;

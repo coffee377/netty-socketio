@@ -18,6 +18,12 @@ package com.socketio4j.socketio.protocol;
 
 import io.netty.buffer.ByteBuf;
 
+/**
+ * UTF-8 字符扫描器
+ *
+ * <p>用于在 ByteBuf 中扫描和计算 UTF-8 字符的实际长度，
+ * 处理多字节 UTF-8 编码字符的长度计算
+ */
 public class UTF8CharsScanner {
 
     /**

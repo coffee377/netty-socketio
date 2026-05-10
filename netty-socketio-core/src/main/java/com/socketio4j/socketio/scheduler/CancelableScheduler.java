@@ -20,18 +20,59 @@ import java.util.concurrent.TimeUnit;
 
 import io.netty.channel.ChannelHandlerContext;
 
+/**
+ * 可取消的调度器接口
+ *
+ * <p>提供定时任务的调度、取消和 ChannelHandlerContext 更新功能
+ */
 public interface CancelableScheduler {
 
+    /**
+     * 更新 ChannelHandlerContext
+     *
+     * @param ctx Netty 通道处理器上下文
+     */
     void update(ChannelHandlerContext ctx);
 
+    /**
+     * 取消指定键的调度任务
+     *
+     * @param key 调度任务键
+     */
     void cancel(SchedulerKey key);
 
+    /**
+     * 在 ChannelHandlerContext 的事件循环中调度回调任务
+     *
+     * @param key      调度任务键
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     void scheduleCallback(SchedulerKey key, Runnable runnable, long delay, TimeUnit unit);
 
+    /**
+     * 调度一个任务
+     *
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     void schedule(Runnable runnable, long delay, TimeUnit unit);
 
+    /**
+     * 调度一个可取消的任务
+     *
+     * @param key      调度任务键
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     void schedule(SchedulerKey key, Runnable runnable, long delay, TimeUnit unit);
 
+    /**
+     * 关闭调度器，停止所有任务
+     */
     void shutdown();
 
 }

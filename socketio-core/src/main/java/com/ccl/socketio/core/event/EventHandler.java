@@ -1,6 +1,8 @@
 package com.ccl.socketio.core.event;
 
-import com.ccl.socketio.core.namespace.Namespace;
+import com.ccl.socketio.core.listener.DataListener;
+import com.ccl.socketio.core.namespace.SocketIOClient;
+import com.ccl.socketio.core.namespace.impl.Namespace;
 import com.ccl.socketio.core.protocol.data.Event;
 
 /**
@@ -10,9 +12,9 @@ import com.ccl.socketio.core.protocol.data.Event;
  * 用户实现此接口来处理连接、断开、事件和错误</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
- * @see Namespace.SocketIOClient
+ * @see Namespace.SocketClient
  * @see Event
+ * @since 4.0.0-alpha.0
  */
 public interface EventHandler {
 
@@ -21,14 +23,14 @@ public interface EventHandler {
      *
      * @param client 已连接的客户端
      */
-    void onConnect(Namespace.SocketIOClient client);
+    void onConnect(SocketIOClient client);
 
     /**
      * 断开连接时回调
      *
      * @param client 断开连接的客户端
      */
-    void onDisconnect(Namespace.SocketIOClient client);
+    void onDisconnect(SocketIOClient client);
 
     /**
      * 收到事件时回调
@@ -36,7 +38,17 @@ public interface EventHandler {
      * @param client 已连接客户端
      * @param event  事件数据
      */
-    void onEvent(Namespace.SocketIOClient client, Event event);
+    void onEvent(SocketIOClient client, Event event);
+
+    /**
+     * 注册指定类型的事件监听器
+     *
+     * @param eventName  事件名称
+     * @param eventClass 事件数据类型
+     * @param listener   事件数据监听器
+     * @param <T>        事件数据类型
+     */
+    <T> void onEvent(String eventName, Class<T> eventClass, DataListener<T> listener);
 
     /**
      * 发生错误时回调
@@ -44,5 +56,5 @@ public interface EventHandler {
      * @param client 出错的客户端
      * @param error  异常信息
      */
-    void onError(Namespace.SocketIOClient client, Throwable error);
+    void onError(SocketIOClient client, Throwable error);
 }

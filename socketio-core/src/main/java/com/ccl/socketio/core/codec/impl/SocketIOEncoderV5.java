@@ -39,6 +39,9 @@ public class SocketIOEncoderV5 implements SocketEncoder {
 
     private final Codec codec;
 
+    /**
+     * 创建默认编码器，使用 {@link SocketIOJsonModule} 进行 JSON 序列化
+     */
     public SocketIOEncoderV5() {
         this.codec = new JacksonCodec(new SocketIOJsonModule());
     }

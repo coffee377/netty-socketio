@@ -1,6 +1,6 @@
-package com.ccl.socketio.netty.listener;
+package com.ccl.socketio.core.listener;
 
-import com.ccl.socketio.core.namespace.Namespace;
+import com.ccl.socketio.core.namespace.SocketIOClient;
 
 /**
  * Socket.IO Pong 响应监听器
@@ -18,6 +18,6 @@ public interface PongListener {
      *
      * @param client 发送 Pong 响应的客户端
      */
-    void onPong(Namespace.SocketIOClient client);
+    void onPong(SocketIOClient client);
 
 }

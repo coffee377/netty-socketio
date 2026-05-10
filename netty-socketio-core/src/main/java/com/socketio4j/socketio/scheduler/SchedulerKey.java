@@ -17,8 +17,16 @@
 package com.socketio4j.socketio.scheduler;
 
 
+/**
+ * 调度器键
+ *
+ * <p>用于唯一标识一个调度任务，包含调度类型和关联的会话 ID
+ */
 public class SchedulerKey {
 
+    /**
+     * 调度任务类型
+     */
     public enum Type {PING, PING_TIMEOUT, ACK_TIMEOUT, UPGRADE_TIMEOUT};
 
     private final Type type;

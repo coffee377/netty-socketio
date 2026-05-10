@@ -31,6 +31,12 @@ import io.netty.handler.codec.base64.Base64;
 import io.netty.handler.codec.base64.Base64Dialect;
 import io.netty.util.CharsetUtil;
 
+/**
+ * Socket.IO 数据包编码器
+ *
+ * <p>将 Packet 对象编码为 ByteBuf 二进制数据，支持 JSONP 格式、
+ * 二进制附件编码、Engine.IO V3/V4 协议版本
+ */
 public class PacketEncoder {
 
     private static final byte[] BINARY_HEADER = "b4".getBytes(CharsetUtil.UTF_8);
@@ -176,7 +182,9 @@ public class PacketEncoder {
     static final int[] SIZE_TABLE = {9, 99, 999, 9999, 99999, 999999, 9999999, 99999999, 999999999,
             Integer.MAX_VALUE};
 
-    // Requires positive x
+    /**
+     * 计算正整数的字符串表示长度
+     */
     static int stringSize(long x) {
         for (int i = 0;; i++) {
             if (x <= SIZE_TABLE[i]) {

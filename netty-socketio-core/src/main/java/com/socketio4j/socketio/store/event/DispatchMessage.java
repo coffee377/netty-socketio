@@ -18,6 +18,11 @@ package com.socketio4j.socketio.store.event;
 
 import com.socketio4j.socketio.protocol.Packet;
 
+/**
+ * 消息分发消息
+ *
+ * <p>当需要将数据包分发到指定房间的所有客户端时发布
+ */
 public class DispatchMessage extends EventMessage {
 
     private static final long serialVersionUID = 6692047718303934349L;

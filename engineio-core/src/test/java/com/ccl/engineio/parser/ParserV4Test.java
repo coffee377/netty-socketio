@@ -17,11 +17,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
- * Test suite for Engine.IO Parser based on protocol specification
+ * Engine.IO ParserV4 协议解析器测试
  *
- * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">Engine.IO Protocol</a>
+ * <p>覆盖数据包编解码、Payload 编解码及协议文档示例的验证</p>
+ *
+ * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">Engine.IO 协议文档</a>
  */
-@DisplayName("Engine.IO ParserV4 Tests")
+@DisplayName("Engine.IO ParserV4 协议解析器测试")
 public class ParserV4Test {
 
     private static final ParserV4 parser = ParserV4.getInstance();

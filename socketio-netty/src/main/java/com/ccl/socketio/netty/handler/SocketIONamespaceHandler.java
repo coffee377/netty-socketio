@@ -1,10 +1,17 @@
 package com.ccl.socketio.netty.handler;
 
-import com.ccl.socketio.core.namespace.Namespace;
+import com.ccl.engineio.netty.handler.ChannelAttributes;
+import com.ccl.socketio.core.namespace.SocketIOClient;
+import com.ccl.socketio.core.namespace.SocketIONamespace;
+import com.ccl.socketio.core.namespace.impl.Namespace;
 import com.ccl.socketio.core.namespace.NamespaceManager;
+import com.ccl.socketio.core.namespace.impl.NamespaceClient;
 import com.ccl.socketio.core.protocol.SocketPacket;
-import io.netty.channel.*;
+import io.netty.channel.ChannelHandler.Sharable;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,35 +22,27 @@ import java.util.concurrent.ConcurrentHashMap;
  * <ul>
  *   <li>CONNECT：客户端连接命名空间，创建 SocketIOClient 并触发 connect 事件</li>
  *   <li>DISCONNECT：客户端断开连接，触发 disconnect 事件</li>
- *   <li>EVENT：业务事件，触发命名空间上注册的事件监听器</li>
- *   <li>ACK：消息确认，触发对应的回调</li>
+ *   <li>其他类型（EVENT、ACK 等）：透传到下游处理器</li>
  * </ul>
  */
+@Sharable
 public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<SocketPacket<?>> {
 
     private final NamespaceManager namespaceManager;
-    private final Map<String, Namespace.SocketIOClient> clients = new ConcurrentHashMap<>();
 
     public SocketIONamespaceHandler(NamespaceManager namespaceManager) {
         this.namespaceManager = namespaceManager;
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, SocketPacket packet) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, SocketPacket<?> packet) throws Exception {
+        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
+        if (sessionId == null) return;
+
         String namespaceName = packet.getNamespace();
-        if (namespaceName == null || namespaceName.isEmpty()) {
-            namespaceName = "/";
-        }
-
-        String sessionId = ctx.channel().attr(com.ccl.engineio.netty.handler.ChannelAttributes.SESSION_ID).get();
-        if (sessionId == null) {
-            return;
-        }
-
-        Namespace namespace = namespaceManager.getNamespace(namespaceName);
-        if (namespace == null) {
-            return;
-        }
+        SocketIONamespace namespace = namespaceManager.getOrCreateNamespace(namespaceName);
+        // TODO: 2026/05/10 22:05 获取 SocketIOClient
+        // namespace.addClient();
 
         switch (packet.getType()) {
             case CONNECT:
@@ -52,56 +51,46 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
             case DISCONNECT:
                 handleDisconnect(ctx, namespace, sessionId);
                 break;
-            case EVENT:
-                handleEvent(ctx, namespace, sessionId, packet);
-                break;
-            case ACK:
-                handleAck(ctx, namespace, sessionId, packet);
-                break;
             default:
+                ctx.fireChannelRead(packet);
                 break;
         }
     }
 
-    private void handleConnect(ChannelHandlerContext ctx, Namespace namespace, String sessionId) {
-        Namespace.SocketIOClient client = new Namespace.SocketIOClient(sessionId, namespace.getName());
-        clients.put(sessionId, client);
-        namespace.emit("connect", client);
+    private void handleConnect(ChannelHandlerContext ctx, SocketIONamespace namespace, String sessionId) {
+        NamespaceClient client = new NamespaceClient(namespace, sessionId);
+        namespace.addClient(client);
+//        namespace.emit("connect", client);
 
-        SocketPacket<?> ackPacket = SocketPacket.builder().type(SocketPacket.Type.CONNECT)
-                .namespace(namespace.getName()).build();
-        ctx.writeAndFlush(ackPacket);
+        SocketPacket<?> packet = SocketPacket.builder()
+                .type(SocketPacket.Type.CONNECT)
+                .namespace(namespace.getName())
+                .data(new HashMap<String, Object>() {{
+                    put("sid", sessionId);
+                }})
+                .build();
+        ctx.writeAndFlush(packet);
     }
 
-    private void handleDisconnect(ChannelHandlerContext ctx, Namespace namespace, String sessionId) {
-        Namespace.SocketIOClient client = clients.remove(sessionId);
+    private void handleDisconnect(ChannelHandlerContext ctx, SocketIONamespace namespace, String sessionId) {
+        SocketIOClient client = namespace.removeClient(sessionId);
         if (client != null) {
-            namespace.emit("disconnect", client);
+            // namespace.emit("disconnect", client);
         }
-    }
-
-    private void handleEvent(ChannelHandlerContext ctx, Namespace namespace, String sessionId, SocketPacket<?> packet) {
-        Namespace.SocketIOClient client = clients.get(sessionId);
-        if (client != null) {
-//            namespace.emit(packet.getEventName(), client, packet.getData() != null ? packet.getData().toArray() : new Object[0]);
-        }
-    }
-
-    private void handleAck(ChannelHandlerContext ctx, Namespace namespace, String sessionId, SocketPacket packet) {
-        namespace.triggerAck(packet.getAckId(), packet.getData());
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String sessionId = ctx.channel().attr(com.ccl.engineio.netty.handler.ChannelAttributes.SESSION_ID).get();
-        if (sessionId != null) {
-            Namespace.SocketIOClient client = clients.remove(sessionId);
-            if (client != null) {
-                Namespace namespace = namespaceManager.getNamespace(client.getNamespace());
-                if (namespace != null) {
-                    namespace.emit("disconnect", client);
-                }
-            }
+        String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
+        if (sid != null) {
+//            namespaceManager.g
+//            Namespace.SocketClient client = clients.remove(sessionId);
+//            if (client != null) {
+//                Namespace namespace = namespaceManager.getNamespace(client.getNamespace());
+//                if (namespace != null) {
+//                    namespace.emit("disconnect", client);
+//                }
+//            }
         }
         super.channelInactive(ctx);
     }

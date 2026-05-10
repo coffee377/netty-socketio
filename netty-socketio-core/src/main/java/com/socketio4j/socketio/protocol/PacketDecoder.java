@@ -35,6 +35,12 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.base64.Base64;
 import io.netty.util.CharsetUtil;
 
+/**
+ * Socket.IO 数据包解码器
+ *
+ * <p>将 ByteBuf 二进制数据解码为 Packet 对象，支持字符串头、长度头、
+ * 二进制附件、JSONP 等格式，处理 Engine.IO V3/V4 协议
+ */
 public class PacketDecoder {
 
     private static final Logger log = LoggerFactory.getLogger(PacketDecoder.class);
@@ -55,13 +61,15 @@ public class PacketDecoder {
     }
 
     /**
-     * True zero-copy optimized version of preprocessJson that works directly with ByteBuf
-     * without string conversion and without creating new ByteBuf instances.
-     * 
-     * @param jsonIndex JSONP index, if null then no JSONP processing is needed
-     * @param content the input ByteBuf containing the packet data
-     * @return processed ByteBuf with true zero-copy optimization
-     * @throws UnsupportedEncodingException if UTF-8 encoding is not supported
+     * 零拷贝优化的 JSON 预处理
+     *
+     * <p>直接操作 ByteBuf 进行 URL 解码和 JSONP 格式处理，
+     * 无需字符串转换或创建新的 ByteBuf 实例
+     *
+     * @param jsonIndex JSONP 索引，null 表示不需要 JSONP 处理
+     * @param content   包含数据包数据的 ByteBuf
+     * @return 处理后的 ByteBuf（零拷贝优化）
+     * @throws UnsupportedEncodingException UTF-8 编码不支持时抛出
      */
     public ByteBuf preprocessJson(Integer jsonIndex, ByteBuf content) throws UnsupportedEncodingException {
         // The caller must ensure the buffer stays alive (retain if needed).
@@ -86,7 +94,7 @@ public class PacketDecoder {
     }
     
     /**
-     * URL decode a ByteBuf in-place without creating new ByteBuf
+     * 原地 URL 解码 ByteBuf，无需创建新的 ByteBuf
      */
     private void urlDecodeInPlace(ByteBuf buffer) throws UnsupportedEncodingException {
         int readerIndex = buffer.readerIndex();
@@ -129,10 +137,12 @@ public class PacketDecoder {
     }
     
     /**
-     * Replace escaped newlines "\\n" with "\n" in-place
-     * Note: This reduces the buffer size from 3 bytes("\\n") to 2 byte("\n") per replacement
-     * because unescaping of new lines can be done safely on server-side(c) socket.io.js
-     * @see https://github.com/Automattic/socket.io-client/blob/1.3.3/socket.io.js#L2682
+     * 原地替换转义换行符 "\\n" 为 "\n"
+     *
+     * <p>每次替换将缓冲区大小从 3 字节减少到 2 字节，
+     * 参考 socket.io.js 实现
+     *
+     * @see <a href="https://github.com/Automattic/socket.io-client/blob/1.3.3/socket.io.js#L2682">socket.io.js</a>
      */
     private void replaceEscapedNewlinesInPlace(ByteBuf buffer) {
         int readerIndex = buffer.readerIndex();
@@ -171,14 +181,14 @@ public class PacketDecoder {
     }
     
     /**
-     * Check if a byte represents a hexadecimal digit
+     * 检查字节是否为十六进制数字
      */
     private boolean isHexDigit(byte b) {
         return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'F') || (b >= 'a' && b <= 'f');
     }
     
     /**
-     * Convert a hexadecimal digit byte to its integer value
+     * 将十六进制数字字节转换为整数值
      */
     private int hexToInt(byte b) {
         if (b >= '0' && b <= '9') {
@@ -191,7 +201,9 @@ public class PacketDecoder {
         throw new IllegalArgumentException("Invalid hex digit: " + (char) b);
     }
 
-    // fastest way to parse chars to int
+    /**
+     * 将 ByteBuf 中的字符快速解析为 long 值
+     */
     private long readLong(ByteBuf chars, int length) {
         long result = 0;
         for (int i = chars.readerIndex(); i < chars.readerIndex() + length; i++) {
@@ -238,8 +250,9 @@ public class PacketDecoder {
     }
 
     /**
-     * Decode packet with string header format
-     * Handles packets that start with 0x0 byte
+     * 解码字符串头格式的数据包
+     *
+     * <p>处理以 0x0 字节开头的数据包
      */
     private Packet decodeWithStringHeader(ByteBuf buffer, ClientHead client) throws IOException {
         int maxLength = Math.min(buffer.readableBytes(), 10);
@@ -252,8 +265,9 @@ public class PacketDecoder {
     }
 
     /**
-     * Decode packet with length header format
-     * Handles packets with format "length:data"
+     * 解码长度头格式的数据包
+     *
+     * <p>处理 "length:data" 格式的数据包
      */
     private Packet decodeWithLengthHeader(ByteBuf buffer, ClientHead client) throws IOException {
         int lengthEndIndex = buffer.bytesBefore((byte) ':');
@@ -263,8 +277,7 @@ public class PacketDecoder {
     }
 
     /**
-     * Common frame decoding logic
-     * Extracts frame data and advances buffer position
+     * 通用帧解码逻辑，提取帧数据并前进缓冲区位置
      */
     private Packet decodeFrame(ByteBuf buffer, ClientHead client, int len) throws IOException {
         ByteBuf frame = buffer.slice(buffer.readerIndex() + 1, len);
@@ -434,7 +447,7 @@ public class PacketDecoder {
     }
 
     /**
-     * Parse CONNECT and DISCONNECT packet bodies
+     * 解析 CONNECT 和 DISCONNECT 数据包体
      */
     private void parseConnectDisconnectBody(ByteBuf frame, Packet packet) throws IOException {
         packet.setNsp(readNamespace(frame, false));
@@ -447,7 +460,7 @@ public class PacketDecoder {
     }
 
     /**
-     * Parse ACK packet bodies
+     * 解析 ACK 数据包体
      */
     private void parseAckBody(ClientHead head, ByteBuf frame, Packet packet) throws IOException {
         AckCallback<?> callback = ackManager.getCallback(head.getSessionId(), packet.getAckId());
@@ -462,7 +475,7 @@ public class PacketDecoder {
     }
 
     /**
-     * Parse EVENT packet bodies
+     * 解析 EVENT 数据包体
      */
     private void parseEventBody(ByteBuf frame, Packet packet) throws IOException {
         ByteBufInputStream in = new ByteBufInputStream(frame);
@@ -472,7 +485,7 @@ public class PacketDecoder {
     }
 
     /**
-     * Handle binary attachments for packets that support them
+     * 处理支持二进制附件的数据包
      */
     private void handleBinaryAttachments(ClientHead head, ByteBuf frame, Packet packet) {
         if (packet.hasAttachments() && !packet.isAttachmentsLoaded()) {

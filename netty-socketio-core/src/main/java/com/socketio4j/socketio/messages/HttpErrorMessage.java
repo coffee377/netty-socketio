@@ -18,15 +18,28 @@ package com.socketio4j.socketio.messages;
 
 import java.util.Map;
 
+/**
+ * HTTP 错误消息，封装传输错误信息用于返回错误响应
+ */
 public class HttpErrorMessage extends HttpMessage {
 
     private final Map<String, Object> data;
 
+    /**
+     * 构造 HttpErrorMessage
+     *
+     * @param data 错误数据（包含 code、message 等字段）
+     */
     public HttpErrorMessage(Map<String, Object> data) {
         super(null, null);
         this.data = data;
     }
 
+    /**
+     * 获取错误数据
+     *
+     * @return 错误数据映射
+     */
     public Map<String, Object> getData() {
         return data;
     }

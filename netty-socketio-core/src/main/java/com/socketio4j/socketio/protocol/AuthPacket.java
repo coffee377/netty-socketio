@@ -19,6 +19,9 @@ package com.socketio4j.socketio.protocol;
 import java.util.UUID;
 
 
+/**
+ * 认证数据包，包含服务端返回的会话 ID、传输升级选项、心跳间隔和超时时间
+ */
 public class AuthPacket {
 
     private final UUID sid;

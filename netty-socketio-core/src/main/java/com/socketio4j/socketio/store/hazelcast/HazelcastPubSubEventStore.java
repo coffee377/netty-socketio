@@ -38,6 +38,12 @@ import com.socketio4j.socketio.store.event.EventStoreMode;
 import com.socketio4j.socketio.store.event.EventType;
 
 
+/**
+ * 基于 Hazelcast Pub/Sub 的事件存储实现
+ *
+ * <p>使用 Hazelcast ITopic 进行事件发布和订阅，支持单通道和多通道两种模式，
+ * 节点 ID 过滤防止重复处理本地事件
+ */
 public class HazelcastPubSubEventStore implements EventStore {
 
     private final HazelcastInstance hazelcastPub;

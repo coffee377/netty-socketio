@@ -13,6 +13,19 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Engine.IO WebSocket 升级处理器
+ *
+ * <p>处理 HTTP 升级到 WebSocket 协议的过程：
+ * <ul>
+ *   <li>拦截 WebSocket 升级请求</li>
+ *   <li>计算 Sec-WebSocket-Accept 响应头</li>
+ *   <li>升级完成后替换 Pipeline 为 WebSocket 处理器</li>
+ * </ul>
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public class EngineIOUpgradeHandler extends HttpServerUpgradeHandler {
 
     private final static Logger log = LoggerFactory.getLogger(EngineIOUpgradeHandler.class);
@@ -26,6 +39,11 @@ public class EngineIOUpgradeHandler extends HttpServerUpgradeHandler {
         }, new EngineIOUpgradeCodecFactory());
     }
 
+    /**
+     * 升级编解码器工厂
+     *
+     * <p>根据请求的协议名称创建对应的升级编解码器，当前仅支持 WebSocket 协议升级
+     */
     static class EngineIOUpgradeCodecFactory implements HttpServerUpgradeHandler.UpgradeCodecFactory {
         @Override
         public UpgradeCodec newUpgradeCodec(CharSequence protocol) {
@@ -37,12 +55,35 @@ public class EngineIOUpgradeHandler extends HttpServerUpgradeHandler {
         }
     }
 
+    /**
+     * Engine.IO WebSocket 升级编解码器
+     *
+     * <p>实现 HttpServerUpgradeHandler.UpgradeCodec 接口，处理 WebSocket 协议升级的握手细节：
+     * <ul>
+     *   <li>声明所需的升级请求头</li>
+     *   <li>计算并设置 Sec-WebSocket-Accept 响应头</li>
+     *   <li>升级完成后替换 Pipeline 中的处理器</li>
+     * </ul>
+     */
     static class EngineIOWebSocketUpgradeCodec implements HttpServerUpgradeHandler.UpgradeCodec {
+        /**
+         * 返回所需的升级请求头集合
+         *
+         * @return 包含 UPGRADE 头的集合
+         */
         @Override
         public Collection<CharSequence> requiredUpgradeHeaders() {
             return Collections.singletonList(HttpHeaderNames.UPGRADE);
         }
 
+        /**
+         * 准备升级响应，计算 WebSocket Accept 头
+         *
+         * @param ctx            Channel 处理器上下文
+         * @param upgradeRequest 升级请求
+         * @param upgradeHeaders 升级响应头
+         * @return 是否准备成功
+         */
         @Override
         public boolean prepareUpgradeResponse(ChannelHandlerContext ctx, FullHttpRequest upgradeRequest, HttpHeaders upgradeHeaders) {
             // 添加WebSocket握手所需头信息
@@ -55,6 +96,12 @@ public class EngineIOUpgradeHandler extends HttpServerUpgradeHandler {
             return true;
         }
 
+        /**
+         * 执行升级，将 Pipeline 替换为 WebSocket 处理器
+         *
+         * @param ctx            Channel 处理器上下文
+         * @param upgradeRequest 升级请求
+         */
         @Override
         public void upgradeTo(ChannelHandlerContext ctx, FullHttpRequest upgradeRequest) {
             // 升级完成，替换Pipeline处理器

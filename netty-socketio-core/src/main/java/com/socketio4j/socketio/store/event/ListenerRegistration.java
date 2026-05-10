@@ -19,13 +19,20 @@ package com.socketio4j.socketio.store.event;
 import java.util.Objects;
 
 /**
- * @author https://github.com/sanjomo
- * @date 13/12/25 11:48 am
+ * 监听器注册信息，保存事件监听器及其消息类型的映射关系
+ *
+ * @param <T> 事件消息类型
  */
 public final class ListenerRegistration<T extends EventMessage> {
     final EventListener<T> listener;
     final Class<T> clazz;
 
+    /**
+     * 创建监听器注册信息
+     *
+     * @param listener 事件监听器
+     * @param clazz    事件消息类型
+     */
     public ListenerRegistration(EventListener<T> listener, Class<T> clazz) {
         Objects.requireNonNull(listener, "listener can not be null");
         Objects.requireNonNull(clazz, "clazz can not be null");

@@ -27,6 +27,12 @@ import com.socketio4j.socketio.SocketIOClient;
 import com.socketio4j.socketio.handler.SocketIOException;
 import com.socketio4j.socketio.namespace.Namespace;
 
+/**
+ * {@link OnEvent} 注解扫描器
+ *
+ * <p>解析 OnEvent 注解的方法签名，自动注册事件监听器，
+ * 支持单参数和多参数事件处理方法
+ */
 public class OnEventScanner implements AnnotationScanner {
 
     @Override

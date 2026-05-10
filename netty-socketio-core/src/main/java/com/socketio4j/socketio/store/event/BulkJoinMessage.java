@@ -19,6 +19,11 @@ package com.socketio4j.socketio.store.event;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * 批量加入房间消息
+ *
+ * <p>当客户端一次性加入多个房间时发布，包含会话 ID、房间集合和命名空间
+ */
 public class BulkJoinMessage extends EventMessage {
 
     private static final long serialVersionUID = 7506016762607624388L;

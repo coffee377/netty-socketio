@@ -13,6 +13,15 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Socket.IO Netty 服务端启动引导类
+ *
+ * <p>封装 Netty ServerBootstrap 的配置和启动流程，提供端口、传输层、事件处理等配置能力。
+ * 支持 WebSocket 和 Polling 两种传输模式。
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public class SocketIOBootstrap {
 
     private int port = 3000;
@@ -31,43 +40,94 @@ public class SocketIOBootstrap {
     private EventRouter eventRouter;
 
 
+    /**
+     * 创建默认引导启动器，监听端口 3000
+     */
     public SocketIOBootstrap() {
     }
 
+    /**
+     * 创建引导启动器并指定监听端口
+     *
+     * @param port 监听端口号
+     */
     public SocketIOBootstrap(int port) {
         this.port = port;
     }
 
+    /**
+     * 创建引导启动器并指定详细配置
+     *
+     * @param port         监听端口号
+     * @param pingInterval Ping 心跳间隔（毫秒）
+     * @param pingTimeout  Ping 心跳超时（毫秒）
+     * @param transports   启用的传输层列表
+     */
     public SocketIOBootstrap(int port, long pingInterval, long pingTimeout, List<String> transports) {
         this.port = port;
         this.transports = transports;
     }
 
+    /**
+     * 设置事件处理器注册回调
+     *
+     * @param eventHandlerRegister 事件处理器注册回调
+     * @return 当前引导启动器实例
+     */
     public SocketIOBootstrap setEventHandlerRegister(Consumer<SocketIOEventRouterHandler> eventHandlerRegister) {
         this.eventHandlerRegister = eventHandlerRegister;
         return this;
     }
 
+    /**
+     * 设置业务逻辑处理器
+     *
+     * @param businessHandler 业务 ChannelHandler
+     * @return 当前引导启动器实例
+     */
     public SocketIOBootstrap setBusinessHandler(ChannelHandler businessHandler) {
         this.businessHandler = businessHandler;
         return this;
     }
 
+    /**
+     * 设置全局异常处理器
+     *
+     * @param globalExceptionHandler 异常 ChannelHandler
+     * @return 当前引导启动器实例
+     */
     public SocketIOBootstrap setGlobalExceptionHandler(ChannelHandler globalExceptionHandler) {
         this.globalExceptionHandler = globalExceptionHandler;
         return this;
     }
 
+    /**
+     * 设置是否启用 CORS
+     *
+     * @param enableCors 是否启用 CORS
+     * @return 当前引导启动器实例
+     */
     public SocketIOBootstrap setEnableCors(boolean enableCors) {
         this.enableCors = enableCors;
         return this;
     }
 
+    /**
+     * 设置 CORS 允许的域名
+     *
+     * @param corsOrigin 允许的域名，默认为 "*"
+     * @return 当前引导启动器实例
+     */
     public SocketIOBootstrap setCorsOrigin(String corsOrigin) {
         this.corsOrigin = corsOrigin;
         return this;
     }
 
+    /**
+     * 启动 Socket.IO 服务端
+     *
+     * @throws InterruptedException 启动过程被中断时抛出
+     */
     public void start() throws InterruptedException {
         IoHandlerFactory handler = NioIoHandler.newFactory();
         bossGroup = new MultiThreadIoEventLoopGroup(0, handler);
@@ -98,6 +158,9 @@ public class SocketIOBootstrap {
         serverChannel = future.channel();
     }
 
+    /**
+     * 停止 Socket.IO 服务端，释放所有资源
+     */
     public void stop() {
         if (serverChannel != null) {
             serverChannel.close();

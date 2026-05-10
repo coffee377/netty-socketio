@@ -26,20 +26,49 @@ import com.socketio4j.socketio.protocol.JsonSupport;
 import com.socketio4j.socketio.store.event.EventStore;
 
 /**
+ * 存储工厂接口
  *
- * Creates a client Store and EventStore
- *
+ * <p>创建客户端会话存储和事件存储，管理分布式数据结构和生命周期
  */
 public interface StoreFactory extends Disconnectable {
 
+    /**
+     * 获取事件存储实例
+     *
+     * @return 事件存储
+     */
     EventStore eventStore();
 
+    /**
+     * 创建指定名称的分布式 map
+     *
+     * @param <K>  键类型
+     * @param <V>  值类型
+     * @param name map 名称
+     * @return 分布式 map
+     */
     <K, V> Map<K, V> createMap(String name);
 
+    /**
+     * 创建指定会话的存储
+     *
+     * @param sessionId 会话 ID
+     * @return 会话存储
+     */
     Store createStore(UUID sessionId);
 
+    /**
+     * 初始化存储工厂
+     *
+     * @param namespacesHub    命名空间管理器
+     * @param authorizeHandler 授权处理器
+     * @param jsonSupport      JSON 支持
+     */
     void init(NamespacesHub namespacesHub, AuthorizeHandler authorizeHandler, JsonSupport jsonSupport);
 
+    /**
+     * 关闭存储工厂，释放资源
+     */
     void shutdown();
 
 }

@@ -19,14 +19,31 @@ package com.socketio4j.socketio.misc;
 import java.util.AbstractCollection;
 import java.util.Iterator;
 
+/**
+ * 将 CompositeIterable 适配为 AbstractCollection
+ *
+ * <p>提供 size() 方法（通过遍历计数），使复合可迭代对象可以当作集合使用
+ *
+ * @param <T> 元素类型
+ */
 public class IterableCollection<T> extends AbstractCollection<T> {
 
     private final CompositeIterable<T> iterable;
 
+    /**
+     * 使用 Iterable 构造集合
+     *
+     * @param iterable 源 Iterable
+     */
     public IterableCollection(Iterable<T> iterable) {
         this(new CompositeIterable(iterable));
     }
 
+    /**
+     * 使用 CompositeIterable 构造集合
+     *
+     * @param iterable 源复合 Iterable
+     */
     public IterableCollection(CompositeIterable<T> iterable) {
         this.iterable = iterable;
     }

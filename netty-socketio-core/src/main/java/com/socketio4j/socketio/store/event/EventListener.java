@@ -17,6 +17,11 @@
 package com.socketio4j.socketio.store.event;
 
 
+/**
+ * 事件监听器接口
+ *
+ * @param <T> 事件消息类型
+ */
 public interface EventListener<T> {
 
     void onMessage(T data);

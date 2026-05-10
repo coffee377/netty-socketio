@@ -19,9 +19,14 @@ package com.socketio4j.socketio.listener;
 import com.socketio4j.socketio.SocketIOServer;
 
 /**
- * @author https://github.com/sanjomo
- * @date 11/01/26 12:05 am
+ * 服务器停止前监听器，在 Socket.IO 服务器即将停止前回调
  */
 public interface ServerBeforeStopListener {
+
+    /**
+     * 服务器停止前调用
+     *
+     * @param server SocketIOServer 实例
+     */
     void beforeStop(SocketIOServer server);
 }

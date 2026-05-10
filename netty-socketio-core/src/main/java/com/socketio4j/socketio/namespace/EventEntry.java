@@ -21,6 +21,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.socketio4j.socketio.listener.DataListener;
 
+/**
+ * 事件监听器条目
+ *
+ * <p>保存特定事件名称对应的所有数据监听器队列
+ *
+ * @param <T> 事件数据类型
+ */
 public class EventEntry<T> {
 
     private final Queue<DataListener<T>> listeners = new ConcurrentLinkedQueue<DataListener<T>>();
@@ -29,6 +36,11 @@ public class EventEntry<T> {
         super();
     }
 
+    /**
+     * 添加数据监听器
+     *
+     * @param listener 数据监听器
+     */
     public void addListener(DataListener<T> listener) {
         listeners.add(listener);
     }

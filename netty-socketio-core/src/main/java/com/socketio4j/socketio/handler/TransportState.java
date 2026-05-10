@@ -23,23 +23,47 @@ import com.socketio4j.socketio.protocol.Packet;
 
 import io.netty.channel.Channel;
 
+/**
+ * 传输状态，维护某个传输方式（WebSocket 或 Polling）的 Channel 和数据包队列
+ */
 public class TransportState {
 
     private Queue<Packet> packetsQueue = new ConcurrentLinkedQueue<>();
     private Channel channel;
 
+    /**
+     * 设置数据包队列
+     *
+     * @param packetsQueue 数据包队列
+     */
     public void setPacketsQueue(Queue<Packet> packetsQueue) {
         this.packetsQueue = packetsQueue;
     }
 
+    /**
+     * 获取数据包队列
+     *
+     * @return 数据包队列
+     */
     public Queue<Packet> getPacketsQueue() {
         return packetsQueue;
     }
 
+    /**
+     * 获取绑定的 Channel
+     *
+     * @return Channel
+     */
     public Channel getChannel() {
         return channel;
     }
 
+    /**
+     * 更新绑定的 Channel 并返回旧的 Channel
+     *
+     * @param channel 新 Channel
+     * @return 旧 Channel
+     */
     public Channel update(Channel channel) {
         Channel prevChannel = this.channel;
         this.channel = channel;

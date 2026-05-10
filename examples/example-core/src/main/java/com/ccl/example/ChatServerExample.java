@@ -5,6 +5,15 @@ import com.ccl.socketio.server.listener.SocketIOListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Socket.IO 聊天服务器示例
+ *
+ * <p>演示使用重构版 {@link com.ccl.socketio.server.SocketIOServer} 启动服务，
+ * 通过 {@link com.ccl.socketio.server.listener.SocketIOListener} 处理连接、事件和错误。
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public class ChatServerExample {
 
     private final static Logger log = LoggerFactory.getLogger(ChatServerExample.class);

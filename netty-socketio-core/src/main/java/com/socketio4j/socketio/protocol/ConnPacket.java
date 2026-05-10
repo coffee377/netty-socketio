@@ -18,6 +18,9 @@ package com.socketio4j.socketio.protocol;
 
 import java.util.UUID;
 
+/**
+ * 连接数据包，包含服务端分配的会话 ID
+ */
 public class ConnPacket {
 
     private final UUID sid;

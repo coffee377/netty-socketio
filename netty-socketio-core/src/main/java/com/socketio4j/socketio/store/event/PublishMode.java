@@ -17,8 +17,10 @@
 package com.socketio4j.socketio.store.event;
 
 /**
- * @author https://github.com/sanjomo
- * @date 09/12/25 10:13 pm
+ * 事件发布模式枚举
+ *
+ * <p>RELIABLE：可靠发布，确保消息不丢失
+ * UNRELIABLE：不可靠发布，即发即忘
  */
 public enum PublishMode {
     RELIABLE, // some kind of reliability in publishing

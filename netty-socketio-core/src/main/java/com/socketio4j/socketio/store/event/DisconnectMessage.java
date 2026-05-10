@@ -18,6 +18,11 @@ package com.socketio4j.socketio.store.event;
 
 import java.util.UUID;
 
+/**
+ * 客户端断开连接消息
+ *
+ * <p>当客户端断开连接时发布，包含会话 ID
+ */
 public class DisconnectMessage extends EventMessage {
 
     private static final long serialVersionUID = -2763553673397520368L;

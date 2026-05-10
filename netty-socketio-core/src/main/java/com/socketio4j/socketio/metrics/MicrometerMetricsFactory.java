@@ -22,61 +22,10 @@ import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * Factory for creating {@link MicrometerSocketIOMetrics} instances from a
- * user-provided {@link MeterRegistry}.
+ * Micrometer 指标工厂，基于用户提供的 MeterRegistry 创建 MicrometerSocketIOMetrics 实例
  *
- * <h2>Design Philosophy</h2>
- * <p>
- * This factory intentionally <strong>does not create</strong> any
- * {@link MeterRegistry} or exporter implementations (OTLP, Prometheus,
- * Datadog, InfluxDB, etc.).
- * </p>
- *
- * <p>
- * The responsibility boundaries are strictly enforced:
- * </p>
- *
- * <ul>
- *   <li><strong>socketio4j (library)</strong>:
- *       <ul>
- *         <li>Defines and records metrics</li>
- *         <li>Depends only on Micrometer Core APIs</li>
- *         <li>Does <em>not</em> expose HTTP endpoints</li>
- *         <li>Does <em>not</em> choose exporters or backends</li>
- *       </ul>
- *   </li>
- *   <li><strong>Application / Driver code</strong>:
- *       <ul>
- *         <li>Creates and configures {@link MeterRegistry} instances</li>
- *         <li>Selects OTLP, Prometheus, Datadog, InfluxDB, etc.</li>
- *         <li>Controls exporter lifecycle and configuration</li>
- *       </ul>
- *   </li>
- *   <li><strong>Observability infrastructure</strong>:
- *       <ul>
- *         <li>Receives metrics (e.g. via OTLP)</li>
- *         <li>Optionally exposes scrape endpoints (e.g. Prometheus via
- *             OpenTelemetry Collector)</li>
- *       </ul>
- *   </li>
- * </ul>
- *
- * <h2>Recommended Usage</h2>
- *
- * <pre>{@code
- * // Application / driver code
- * MeterRegistry registry =
- *     new OtlpMeterRegistry(OtlpConfig.DEFAULT, Clock.SYSTEM);
- *
- * MicrometerSocketIOMetrics metrics =
- *     MicrometerMetricsFactory.using(registry, true);
- * }</pre>
- *
- * <p>
- * This design ensures that socketio4j remains backend-agnostic,
- * cloud-native, and compatible with OpenTelemetry-based observability
- * pipelines.
- * </p>
+ * <p>该工厂不创建 MeterRegistry 或 Exporter，由上层应用负责选择和配置。
+ * socketio4j 仅依赖 Micrometer Core API，与具体后端解耦
  *
  * @since 4.0.0
  */
@@ -86,9 +35,15 @@ public final class MicrometerMetricsFactory {
     private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
 
     private MicrometerMetricsFactory() {
-        // Prevent instantiation
     }
 
+    /**
+     * 使用指定 MeterRegistry 创建 Micrometer 指标实现
+     *
+     * @param registry         MeterRegistry
+     * @param histogramEnabled 是否启用百分位直方图
+     * @return MicrometerSocketIOMetrics 实例
+     */
     public static MicrometerSocketIOMetrics using(MeterRegistry registry, boolean histogramEnabled) {
         return new MicrometerSocketIOMetrics(registry, histogramEnabled);
     }

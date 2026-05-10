@@ -42,8 +42,9 @@ import io.nats.client.Subscription;
 
 
 /**
- * Unreliable NATS Core based EventStore.
- * Events are ephemeral and not replayed.
+ * 基于 NATS Core 的事件存储实现
+ *
+ * <p>事件为临时性、不可回放的发布/订阅模式，使用 NATS Subject 作为通道
  */
 public class NatsEventStore implements EventStore {
 

@@ -16,6 +16,12 @@
  */
 package com.socketio4j.socketio.store.event;
 
+/**
+ * 事件存储通道模式枚举
+ *
+ * <p>SINGLE_CHANNEL：所有事件类型共享单个通道，保证全局顺序
+ * MULTI_CHANNEL：各事件类型独立通道，支持独立扩展
+ */
 public enum EventStoreMode {
     SINGLE_CHANNEL,
     MULTI_CHANNEL

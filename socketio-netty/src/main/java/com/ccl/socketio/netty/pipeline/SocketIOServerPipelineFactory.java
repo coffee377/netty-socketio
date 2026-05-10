@@ -7,6 +7,7 @@ import com.ccl.engineio.netty.transport.PollingTransport;
 import com.ccl.socketio.core.event.EventRouter;
 import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
+import com.ccl.socketio.netty.handler.SocketIONamespaceHandler;
 import com.ccl.socketio.netty.handler.codec.SocketPacketDecoder;
 import com.ccl.socketio.netty.handler.codec.SocketPacketEncoder;
 import io.netty.channel.*;
@@ -84,13 +85,13 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         // ==================== 第一层：HTTP 基础编解码（必须加）====================
         // 1. HTTP 基础编解码器 请求解码/响应编码
         HttpServerCodec httpCodec = new HttpServerCodec();
-        pipeline.addLast("httpCodec", httpCodec);
+        pipeline.addLast(HttpServerCodec.class.getName(), httpCodec);
         // 2. 协议升级处理器
         // pipeline.addLast("upgrade", new EngineIOUpgradeHandler(httpCodec));
         // 3. 聚合完整HTTP请求
-        pipeline.addLast("httpAggregator", new HttpObjectAggregator(65536));
+        pipeline.addLast(HttpObjectAggregator.class.getName(), new HttpObjectAggregator(65536));
         //
-        pipeline.addLast("chunked", new ChunkedWriteHandler());
+        pipeline.addLast(ChunkedWriteHandler.class.getName(), new ChunkedWriteHandler());
 
         // --- Idle state ---
 //        pipeline.addLast("idleState", new IdleStateHandler(
@@ -98,52 +99,44 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                (int) pingTimeout / 1000,
 //                0, TimeUnit.SECONDS));
 
-        pipeline.addLast("EnginePacketEncoder", new EnginePacketEncoder());
+        pipeline.addLast(EnginePacketEncoder.class.getName(), new EnginePacketEncoder());
         // EngineIO握手处理器（核心）
-        pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536));
+        pipeline.addLast(EngineIOHandshakeHandler.class.getName(), new EngineIOHandshakeHandler("/socket.io", 65536));
 
         // --- Engine.IO heartbeat ---
         // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
 
         // Engine.IO Polling 处理器（处理 polling 握手、GET/POST）
-        pipeline.addLast("polling", new PollingTransport());
-        pipeline.addLast("enginePacketDecoder", new EnginePacketDecoder());
+        pipeline.addLast(PollingTransport.class.getName(), new PollingTransport());
+        pipeline.addLast(EnginePacketDecoder.class.getName(), new EnginePacketDecoder());
 
-        pipeline.addLast("SocketPacketEncoder", new SocketPacketEncoder());
-        pipeline.addLast("SocketIODecoder", new SocketPacketDecoder());
+        pipeline.addLast(SocketPacketEncoder.class.getName(), new SocketPacketEncoder());
+        pipeline.addLast(SocketPacketDecoder.class.getName(), new SocketPacketDecoder());
 
-//        pipeline.addLast("socketCodec", new SocketIOCodec());
+        // --- Socket.IO namespace management ---
+        pipeline.addLast(SocketIONamespaceHandler.class.getName(), new SocketIONamespaceHandler(namespaceManager));
 
-        // --- Engine.IO session management ---
-//        pipeline.addLast("engineSession", new EngineIOSessionHandler());
+        // --- Socket.IO event router ---
+        SocketIOEventRouterHandler routerHandler = new SocketIOEventRouterHandler(eventRouter);
+        pipeline.addLast(SocketIOEventRouterHandler.class.getName(), routerHandler);
 
-//        // --- Socket.IO namespace management ---
-//        pipeline.addLast("socketIONamespace", new SocketIONamespaceHandler(namespaceManager));
-//
-//        // --- Socket.IO binary attachment ---
-//        pipeline.addLast("socketIOBinary", new SocketIOBinaryHandler());
-//
-//        // --- Socket.IO event router ---
-//        SocketIOEventRouterHandler routerHandler = new SocketIOEventRouterHandler(eventRouter);
-//        pipeline.addLast("socketIORouter", routerHandler);
-//
-//        // --- Business handler ---
-//        if (businessHandler != null) {
-//            pipeline.addLast("businessHandler", businessHandler);
-//        }
-//
-//        // --- Global exception handler ---
-//        if (globalExceptionHandler != null) {
-//            pipeline.addLast("exceptionHandler", globalExceptionHandler);
-//        }
-//
-//        // Register event handler callback
-//        if (eventHandlerRegister != null) {
-//            try {
-//                eventHandlerRegister.accept(routerHandler);
-//            } catch (Exception e) {
-//                // Ignore callback errors
-//            }
-//        }
+        // --- Business handler ---
+        if (businessHandler != null) {
+            pipeline.addLast("businessHandler", businessHandler);
+        }
+
+        // --- Global exception handler ---
+        if (globalExceptionHandler != null) {
+            pipeline.addLast("exceptionHandler", globalExceptionHandler);
+        }
+
+        // Register event handler callback
+        if (eventHandlerRegister != null) {
+            try {
+                eventHandlerRegister.accept(routerHandler);
+            } catch (Exception e) {
+                // Ignore callback errors
+            }
+        }
     }
 }

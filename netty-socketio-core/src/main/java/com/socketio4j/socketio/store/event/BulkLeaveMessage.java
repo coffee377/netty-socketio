@@ -19,6 +19,11 @@ package com.socketio4j.socketio.store.event;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * 批量离开房间消息
+ *
+ * <p>当客户端一次性离开多个房间时发布，包含会话 ID、房间集合和命名空间
+ */
 public class BulkLeaveMessage extends EventMessage {
 
     private static final long serialVersionUID = 4084111480148299012L;

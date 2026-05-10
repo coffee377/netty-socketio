@@ -1,5 +1,7 @@
 package com.ccl.socketio.core.protocol;
 
+import com.ccl.socketio.core.protocol.data.Event;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +24,8 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  *
  * @param <T> 数据包负载数据类型
  * @author coffee377
- * @since 4.0.0-alpha.0
  * @see <a href="https://socket.io/zh-CN/docs/v4/socket-io-protocol/">Socket.IO 协议文档</a>
+ * @since 4.0.0-alpha.0
  */
 public class SocketPacket<T> {
 
@@ -117,6 +119,9 @@ public class SocketPacket<T> {
      * @return 命名空间字符串，默认 "/"
      */
     public String getNamespace() {
+        if (namespace == null || namespace.isEmpty()) {
+            return "/";
+        }
         return namespace;
     }
 
@@ -130,12 +135,37 @@ public class SocketPacket<T> {
     }
 
     /**
+     * 判断当前数据包是否请求了 ACK 确认
+     *
+     * @return 需要 ACK 确认时返回 true
+     */
+    public boolean isAckRequested() {
+        return ackId != null;
+    }
+
+    /**
      * 获取事件名称
      *
-     * @return 事件名称字符串
+     * <p>从数据包负载中提取事件名称，支持以下数据格式：
+     * <ul>
+     *   <li>{@link Event} 对象：返回 {@link Event#getName()}</li>
+     *   <li>{@link List} 对象：返回列表第一个元素（Socket.IO 协议约定）</li>
+     *   <li>其他类型或 null：返回 null</li>
+     * </ul>
+     *
+     * @return 事件名称字符串，无法提取时返回 null
      */
     public String getEventName() {
-        return "// TODO: 2026/05/09 09:10 eventName";
+        if (data instanceof Event) {
+            return ((Event) data).getName();
+        }
+        if (data instanceof List) {
+            List<?> list = (List<?>) data;
+            if (!list.isEmpty() && list.get(0) instanceof String) {
+                return (String) list.get(0);
+            }
+        }
+        return null;
     }
 
     /**

@@ -53,10 +53,11 @@ import com.socketio4j.socketio.store.event.EventType;
 import com.socketio4j.socketio.store.event.ListenerRegistration;
 
 /**
- * @author https://github.com/sanjomo
- * @date 15/12/25 6:09 pm
+ * 基于 Kafka 的事件存储实现
+ *
+ * <p>使用 Kafka 作为事件消息的发布/订阅后端，支持单通道和多通道模式，
+ * 每个事件类型有独立的 Kafka topic，提供流式可回放的事件存储
  */
-
 public final class KafkaEventStore implements EventStore {
 
     private static final Logger log =

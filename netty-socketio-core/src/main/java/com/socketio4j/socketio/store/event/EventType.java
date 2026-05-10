@@ -16,6 +16,12 @@
  */
 package com.socketio4j.socketio.store.event;
 
+/**
+ * 事件存储事件类型枚举
+ *
+ * <p>定义跨节点同步的事件类型：连接、断开、加入/离开房间、
+ * 批量操作、消息分发和全单通道模式
+ */
 public enum EventType {
 
     CONNECT,

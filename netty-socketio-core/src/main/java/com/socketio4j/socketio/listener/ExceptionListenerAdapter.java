@@ -23,9 +23,9 @@ import com.socketio4j.socketio.SocketIOClient;
 import io.netty.channel.ChannelHandlerContext;
 
 /**
- * Base callback exceptions listener
+ * 异常监听器适配器，提供各异常回调方法的空实现
  *
- *
+ * <p>继承此类可仅覆写需要处理的异常回调，无需实现全部接口方法
  */
 public abstract class ExceptionListenerAdapter implements ExceptionListener {
 
@@ -48,12 +48,10 @@ public abstract class ExceptionListenerAdapter implements ExceptionListener {
 
     @Override
     public void onPingException(Exception e, SocketIOClient client) {
-        
     }
 
     @Override
     public void onPongException(Exception e, SocketIOClient client) {
-
     }
 
 }

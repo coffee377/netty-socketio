@@ -24,6 +24,12 @@ import com.socketio4j.socketio.SocketIOClient;
 import com.socketio4j.socketio.handler.SocketIOException;
 import com.socketio4j.socketio.namespace.Namespace;
 
+/**
+ * {@link OnDisconnect} 注解扫描器
+ *
+ * <p>解析 OnDisconnect 注解的方法签名，验证方法参数包含 SocketIOClient，
+ * 自动注册断开连接事件监听器
+ */
 public class OnDisconnectScanner implements AnnotationScanner {
 
     @Override

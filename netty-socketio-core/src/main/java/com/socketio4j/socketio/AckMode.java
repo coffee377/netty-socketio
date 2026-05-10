@@ -16,24 +16,25 @@
  */
 package com.socketio4j.socketio;
 
+/**
+ * ACK 响应模式
+ *
+ * <p>控制服务端在收到 ACK 请求后是自动发送确认还是由开发者手动控制
+ */
 public enum AckMode {
 
     /**
-     * Send ack-response automatically on each ack-request
-     * <b>skip</b> exceptions during packet handling
+     * 每次 ACK 请求时自动发送确认，跳过事件处理中的异常
      */
     AUTO,
 
     /**
-     * Send ack-response automatically on each ack-request
-     * only after <b>success</b> packet handling
+     * 仅在事件处理成功后才自动发送确认
      */
     AUTO_SUCCESS_ONLY,
 
     /**
-     * Turn off auto ack-response sending.
-     * Use AckRequest.sendAckData to send ack-response each time.
-     *
+     * 关闭自动 ACK 确认，需手动调用 AckRequest.sendAckData 发送确认
      */
     MANUAL
 

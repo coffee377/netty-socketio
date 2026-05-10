@@ -18,8 +18,16 @@ package com.socketio4j.socketio.listener;
 
 import com.socketio4j.socketio.SocketIOClient;
 
+/**
+ * 断开事件监听器，在客户端断开连接时回调
+ */
 public interface DisconnectListener {
 
+    /**
+     * 客户端断开时调用
+     *
+     * @param client 断开的客户端
+     */
     void onDisconnect(SocketIOClient client);
 
 }

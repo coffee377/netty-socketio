@@ -23,11 +23,18 @@ import com.socketio4j.socketio.SocketIOClient;
 
 
 /**
- * @author https://github.com/sanjomo
- * @date 27/11/25 10:31 am
+ * 全局事件监听器，捕获所有事件而无需指定具体事件名称
  */
 @FunctionalInterface
 public interface CatchAllEventListener {
 
+    /**
+     * 任何事件到达时调用
+     *
+     * @param client    客户端
+     * @param event     事件名称
+     * @param args      事件参数列表
+     * @param ackRequest ACK 请求
+     */
     void onEvent(SocketIOClient client, String event, List<Object> args, AckRequest ackRequest);
 }

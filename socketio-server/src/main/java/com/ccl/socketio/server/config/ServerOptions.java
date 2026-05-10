@@ -3,6 +3,14 @@ package com.ccl.socketio.server.config;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Socket.IO 服务端配置选项
+ *
+ * <p>包含端口、心跳参数、传输层、CORS 和 SSL 等配置项。
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public class ServerOptions {
 
     private int port = 3000;

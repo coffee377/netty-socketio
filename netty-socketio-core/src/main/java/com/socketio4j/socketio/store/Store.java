@@ -18,63 +18,51 @@ package com.socketio4j.socketio.store;
 
 
 /**
- * Store interface for managing session-specific data storage.
- * <p>
- * Each store instance is associated with a specific session and provides
- * key-value storage operations. The store can be backed by different
- * storage implementations (in-memory, Hazelcast, Redisson, etc.).
- * </p>
+ * 会话数据存储接口
+ *
+ * <p>每个 Store 实例与特定会话关联，提供键值存储操作，
+ * 可基于不同后端实现（内存、Hazelcast、Redisson 等）
  */
 public interface Store {
 
     /**
-     * Sets a value for the specified key in this store.
+     * 设置指定键的值
      *
-     * @param key the key to set
-     * @param val the value to store (must not be null)
-     * @throws NullPointerException if the value is null
+     * @param key 键名
+     * @param val 要存储的值（不能为 null）
+     * @throws NullPointerException 值为 null 时抛出
      */
     void set(String key, Object val);
 
     /**
-     * Gets the value associated with the specified key.
+     * 获取指定键的值
      *
-     * @param <T> the type of the value to retrieve
-     * @param key the key to retrieve
-     * @return the value associated with the key, or null if the key does not exist
+     * @param <T> 值类型
+     * @param key 键名
+     * @return 键对应的值，不存在时返回 null
      */
     <T> T get(String key);
 
     /**
-     * Checks whether a key exists in this store.
+     * 检查指定键是否存在
      *
-     * @param key the key to check
-     * @return true if the key exists, false otherwise
+     * @param key 键名
+     * @return 存在返回 true，否则返回 false
      */
     boolean has(String key);
 
     /**
-     * Deletes the value associated with the specified key.
+     * 删除指定键的值
      *
-     * @param key the key to delete
+     * @param key 键名
      */
     void del(String key);
 
     /**
-     * Destroys or clears all data in this store.
-     * <p>
-     * This method should be called when the store is no longer needed,
-     * typically when a client disconnects. After calling this method,
-     * the store should be considered invalid and should not be used further.
-     * </p>
-     * <p>
-     * The exact behavior depends on the implementation:
-     * <ul>
-     *   <li>For distributed stores (Hazelcast, Redisson), this will delete
-     *       the entire map/collection associated with the session.</li>
-     *   <li>For in-memory stores, this will clear all stored data.</li>
-     * </ul>
-     * </p>
+     * 销毁此存储中的所有数据
+     *
+     * <p>在客户端断开连接时调用，调用后此存储实例不再可用。
+     * 不同实现行为不同：分布式存储会删除整个 map，内存存储会清空数据
      */
     void destroy();
 

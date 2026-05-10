@@ -19,8 +19,7 @@ package com.socketio4j.socketio.listener;
 import com.socketio4j.socketio.MultiTypeArgs;
 
 /**
- * Multi type args event listener
- *
+ * 多类型参数事件监听器，支持接收多个不同类型参数的事件
  */
 public interface MultiTypeEventListener extends DataListener<MultiTypeArgs> {
 

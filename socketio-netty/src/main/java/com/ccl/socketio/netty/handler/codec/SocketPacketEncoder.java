@@ -48,7 +48,6 @@ public class SocketPacketEncoder extends MessageToMessageEncoder<SocketPacket<?>
 
     @Override
     protected void encode(ChannelHandlerContext ctx, SocketPacket<?> msg, List<Object> out) throws Exception {
-        String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
         String ps = encoder.encode(msg);
         if (log.isDebugEnabled()) {
             log.debug("OUT [{}] {}", msg.getType(), ps);
@@ -58,13 +57,14 @@ public class SocketPacketEncoder extends MessageToMessageEncoder<SocketPacket<?>
         EngineIOPacket<String> packet = EngineIOPacket.builder().data(ps).build();
         packets.add(packet);
 
-
         if (msg.hasAttachments()) {
             for (byte[] attachment : msg.getAttachments()) {
                 EngineIOPacket<byte[]> ap = EngineIOPacket.builder().data(attachment).build();
                 packets.add(ap);
             }
         }
+
+        // TODO: 2026/05/10 19:06 根据 transport 选择信息处理方式
 
         ChannelHandlerContext context = ctx.pipeline().context(PollingTransport.class);
         if (context != null) {
@@ -77,7 +77,7 @@ public class SocketPacketEncoder extends MessageToMessageEncoder<SocketPacket<?>
             content.writeBytes(bytes);
 
             PollingTransport polling = (PollingTransport) context.handler();
-            sid = context.channel().attr(ChannelAttributes.SESSION_ID).get();
+            String sid = context.channel().attr(ChannelAttributes.SESSION_ID).get();
             polling.sendMessage(sid, content);
         }
 

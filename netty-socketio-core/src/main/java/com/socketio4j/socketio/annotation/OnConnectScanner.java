@@ -24,6 +24,12 @@ import com.socketio4j.socketio.SocketIOClient;
 import com.socketio4j.socketio.handler.SocketIOException;
 import com.socketio4j.socketio.namespace.Namespace;
 
+/**
+ * {@link OnConnect} 注解扫描器
+ *
+ * <p>解析 OnConnect 注解的方法签名，验证方法参数包含 SocketIOClient，
+ * 自动注册连接事件监听器
+ */
 public class OnConnectScanner implements AnnotationScanner  {
 
     @Override

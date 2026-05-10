@@ -37,6 +37,12 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.CharsetUtil;
 
+/**
+ * 入站数据包处理器，解码并分发 Socket.IO 协议数据包
+ *
+ * <p>解码 PacketsMessage 中的数据，根据命名空间和子类型分发给对应的处理器。
+ * 处理 Engine.IO V4 的连接认证逻辑
+ */
 @Sharable
 public class InPacketHandler extends SimpleChannelInboundHandler<PacketsMessage> {
 
@@ -47,6 +53,14 @@ public class InPacketHandler extends SimpleChannelInboundHandler<PacketsMessage>
     private final NamespacesHub namespacesHub;
     private final ExceptionListener exceptionListener;
 
+    /**
+     * 构造 InPacketHandler
+     *
+     * @param packetListener    数据包监听器
+     * @param decoder           数据包解码器
+     * @param namespacesHub     命名空间集线器
+     * @param exceptionListener 异常监听器
+     */
     public InPacketHandler(PacketListener packetListener, PacketDecoder decoder, NamespacesHub namespacesHub, ExceptionListener exceptionListener) {
         super();
         this.packetListener = packetListener;
@@ -166,6 +180,16 @@ public class InPacketHandler extends SimpleChannelInboundHandler<PacketsMessage>
         }
     }
 
+    /**
+     * 处理 Engine.IO V4 协议的 CONNECT 数据包
+     *
+     * <p>包含身份认证数据的验证逻辑，认证失败时发送 ERROR 包
+     *
+     * @param packet  CONNECT 数据包
+     * @param client  客户端头部
+     * @param ns      目标命名空间
+     * @param nClient 命名空间客户端
+     */
     private void handleV4Connect(Packet packet, ClientHead client, Namespace ns, NamespaceClient nClient) {
         if (log.isDebugEnabled()) {
             log.debug("Starting Engine.IO v4 connect handling for client: {}, namespace: {}, hasAuthData: {}", 

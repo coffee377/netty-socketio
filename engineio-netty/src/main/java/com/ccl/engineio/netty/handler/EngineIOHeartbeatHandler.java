@@ -29,6 +29,14 @@ public class EngineIOHeartbeatHandler extends IdleStateHandler {
         this.sessionManager = SessionManager.getInstance();
     }
 
+    /**
+     * 处理连接空闲事件
+     *
+     * <p>读空闲时移除 Session 并关闭连接；写空闲时发送 PING 心跳包
+     *
+     * @param ctx Channel 处理器上下文
+     * @param evt 空闲状态事件
+     */
     @Override
     protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) throws Exception {
         if (evt.state() == IdleState.READER_IDLE) {
@@ -47,6 +55,9 @@ public class EngineIOHeartbeatHandler extends IdleStateHandler {
         ctx.writeAndFlush(pingPacket);
     }
 
+    /**
+     * 触发用户事件，处理空闲状态事件
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {

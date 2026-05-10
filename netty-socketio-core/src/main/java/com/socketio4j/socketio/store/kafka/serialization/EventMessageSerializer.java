@@ -16,11 +16,6 @@
  */
 package com.socketio4j.socketio.store.kafka.serialization;
 
-/**
- * @author https://github.com/sanjomo
- * @date 15/12/25 6:21 pm
- */
-
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
@@ -32,6 +27,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.socketio4j.socketio.store.event.EventMessage;
 
+/**
+ * Kafka 事件消息序列化器
+ *
+ * <p>使用 Jackson 将 EventMessage 序列化为字节数组，
+ * 用于 Kafka 生产者发布事件消息
+ */
 public final class EventMessageSerializer
         implements Serializer<EventMessage> {
     private static final Logger log = LoggerFactory.getLogger(EventMessageSerializer.class);

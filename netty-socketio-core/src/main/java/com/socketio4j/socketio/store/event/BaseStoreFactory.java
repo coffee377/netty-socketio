@@ -34,6 +34,11 @@ import com.socketio4j.socketio.store.StoreFactory;
 
 import io.netty.util.internal.ObjectUtil;
 
+/**
+ * 存储工厂抽象基类
+ *
+ * <p>提供事件订阅和分发的通用逻辑，支持单通道和多通道两种订阅模式
+ */
 public abstract class BaseStoreFactory implements StoreFactory {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -214,15 +219,12 @@ public abstract class BaseStoreFactory implements StoreFactory {
     public abstract EventStore eventStore();
 
     /**
-     * Handles client disconnection by destroying the associated store.
-     * <p>
-     * This method retrieves the store from the client and calls its destroy()
-     * method to clean up all stored data. The implementation is common for all
-     * store factory types, as the actual cleanup logic is encapsulated within
-     * each Store implementation.
-     * </p>
+     * 处理客户端断开连接，销毁关联的会话存储
      *
-     * @param client the client that is disconnecting
+     * <p>获取客户端的存储并调用 destroy() 清理所有存储数据，
+     * 此逻辑适用于所有 StoreFactory 类型
+     *
+     * @param client 正在断开连接的客户端
      */
     @Override
     public void onDisconnect(ClientHead client) {

@@ -9,6 +9,14 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+/**
+ * Socket.IO 核心功能示例主程序
+ *
+ * <p>展示 Socket.IO 服务端的基本使用方法，包括命名空间、房间、事件监听器配置。
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 public final class CoreExampleMain {
 
     private static final Logger log =

@@ -37,8 +37,9 @@ import com.socketio4j.socketio.store.event.EventStoreMode;
 import com.socketio4j.socketio.store.event.EventType;
 
 /**
- * Unreliable Redis Pub/Sub based EventStore.
- * Events are ephemeral and not replayed.
+ * 基于 Redis Pub/Sub 的事件存储实现
+ *
+ * <p>事件为临时性、不可回放的发布/订阅模式，使用 Redisson RTopic 作为通道
  */
 public class RedisPubSubEventStore implements EventStore {
 

@@ -14,15 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/**
- * Modified version of HashedWheelScheduler specially for timeouts handling.
- * Difference:
- * - handling old timeout with same key after adding new one
- *   fixes multithreaded problem that appears in highly concurrent non-atomic sequence cancel() -> schedule()
- *
- * (c) Alim Akbashev, 2015-02-11
- */
-
 package com.socketio4j.socketio.scheduler;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,6 +26,12 @@ import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 
 
+/**
+ * 超时专用调度器（基于 Netty HashedWheelTimer）
+ *
+ * <p>与 HashedWheelScheduler 的区别：添加新超时任务时会取消同键的旧任务，
+ * 修复了高并发场景下 cancel() 和 schedule() 非原子操作导致的问题
+ */
 public class HashedWheelTimeoutScheduler implements CancelableScheduler {
 
     private final ConcurrentMap<SchedulerKey, Timeout> scheduledFutures = new ConcurrentHashMap<>();

@@ -20,6 +20,11 @@ import com.socketio4j.socketio.AuthorizationListener;
 import com.socketio4j.socketio.AuthorizationResult;
 import com.socketio4j.socketio.HandshakeData;
 
+/**
+ * 默认的成功授权监听器，始终返回授权通过
+ *
+ * <p>当未设置自定义授权逻辑时使用，对所有连接请求放行
+ */
 public class SuccessAuthorizationListener implements AuthorizationListener {
 
     @Override

@@ -1,14 +1,11 @@
 package com.ccl.socketio.netty.handler.codec;
 
 import com.ccl.engineio.core.protocol.EngineIOPacket;
-import com.ccl.engineio.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.codec.SocketEncoder;
 import com.ccl.socketio.core.codec.impl.SocketIODecoderV5;
 import com.ccl.socketio.core.codec.impl.SocketIOEncoderV5;
 import com.ccl.socketio.core.protocol.SocketPacket;
-import com.ccl.socketio.core.protocol.SocketPacketType;
-import com.ccl.socketio.core.protocol.data.Event;
 import com.ccl.socketio.netty.handler.SocketIOChannelAttributes;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,10 +13,6 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -73,86 +66,37 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
 
     @Override
     protected void decode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
-
         Object data = msg.getData();
-        SocketPacket<?> inPacket;
-        if (data instanceof String) {
-            inPacket = decoder.decode((String) data);
-            if (inPacket == null) return;
-            if (inPacket.hasAttachments() && !inPacket.isAttachmentsLoaded()) {
-                ctx.channel().attr(SocketIOChannelAttributes.SOCKET_PACKET).set(inPacket);
-                return;
-            }
-        } else if (data instanceof byte[]) {
-            inPacket = ctx.channel().attr(SocketIOChannelAttributes.SOCKET_PACKET).get();
-            if (inPacket != null) {
-                inPacket.addAttachment((byte[]) data);
-                if (!inPacket.isAttachmentsLoaded()) {
-                    return;
-                }
-            } else {
-                return;
-            }
-        } else {
-            return;
-        }
-
-        String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        SocketPacket.Type type = inPacket.getType();
+        SocketPacket<?> packet = decodePacket(data, ctx);
+        if (packet == null) return;
 
         if (log.isTraceEnabled()) {
-            String packetStr = encoder.encode(inPacket);
-            log.trace("IN [{}] {}", inPacket.getType(), packetStr);
+            log.trace("IN [{}] {}", packet.getType(), encoder.encode(packet));
         }
 
-        SocketPacket<?> outPacket = null;
+        out.add(packet);
+    }
 
-        switch (type) {
-            case CONNECT:
-            case DISCONNECT:
-            case ERROR:
-
-            case EVENT:
-            case BINARY_EVENT:
-
+    private SocketPacket<?> decodePacket(Object data, ChannelHandlerContext ctx) {
+        if (data instanceof String) {
+            SocketPacket<?> packet = decoder.decode((String) data);
+            if (packet == null) return null;
+            if (packet.hasAttachments() && !packet.isAttachmentsLoaded()) {
+                ctx.channel().attr(SocketIOChannelAttributes.SOCKET_PACKET).set(packet);
+                return null;
+            }
+            return packet;
         }
-
-//        outPacket = ddd(inPacket, sid);
-
-        if (SocketPacket.Type.CONNECT.equals(type)) {
-            HashMap<String, Object> cdata = new HashMap<String, Object>() {{
-                put("sid", sid);
-            }};
-            SocketPacket<HashMap<String, Object>> packet = SocketPacket.builder()
-                    .type(SocketPacket.Type.CONNECT)
-                    .namespace(inPacket.getNamespace())
-                    .data(cdata).build();
-            ctx.writeAndFlush(packet);
-            return;
-        } else if (SocketPacket.Type.DISCONNECT.equals(type)) {
-            ctx.close();
-            return;
+        if (data instanceof byte[]) {
+            SocketPacket<?> packet = ctx.channel().attr(SocketIOChannelAttributes.SOCKET_PACKET).get();
+            if (packet != null) {
+                packet.addAttachment((byte[]) data);
+                if (packet.isAttachmentsLoaded()) {
+                    return packet;
+                }
+            }
+            return null;
         }
-
-        if (SocketPacket.Type.BINARY_EVENT.equals(type)) {
-            byte[] bytes = String.format("data: %s", Instant.now().toString()).getBytes(StandardCharsets.UTF_8);
-
-            Event event = new Event();
-            event.setName("pong");
-            event.setArgs(Collections.singletonList(bytes));
-            // 51-["pong",{"_placeholder":true,"num":0}]
-            // 451-["pong",{"_placeholder":true,"num":0}]bZGF0YQ==
-            SocketPacket<?> eventPacket = SocketPacket.builder()
-                    .type(SocketPacket.Type.BINARY_EVENT)
-                    .namespace(inPacket.getNamespace())
-                    .attachmentsCount(1)
-                    .data(event).build();
-            eventPacket.addAttachment(bytes);
-            ctx.channel().writeAndFlush(eventPacket);
-        }
-
-        if (outPacket != null) {
-            ctx.channel().writeAndFlush(outPacket);
-        }
+        return null;
     }
 }

@@ -16,14 +16,14 @@
  */
 package com.socketio4j.socketio.store.nats_pubsub;
 
-/**
- * @author https://github.com/sanjomo
- * @date 22/12/25 4:04 pm
- */
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.socketio4j.socketio.store.event.EventMessage;
 
+/**
+ * NATS 事件消息编解码器
+ *
+ * <p>使用 Jackson 进行 EventMessage 的序列化和反序列化
+ */
 public final class EventMessageCodec {
 
     private static final ObjectMapper MAPPER;

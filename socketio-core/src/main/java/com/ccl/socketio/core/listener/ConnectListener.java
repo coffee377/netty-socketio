@@ -1,6 +1,6 @@
-package com.ccl.socketio.netty.listener;
+package com.ccl.socketio.core.listener;
 
-import com.ccl.socketio.core.namespace.Namespace;
+import com.ccl.socketio.core.namespace.SocketIOClient;
 
 /**
  * Socket.IO 连接事件监听器
@@ -18,6 +18,6 @@ public interface ConnectListener {
      *
      * @param client 已连接的 Socket.IO 客户端
      */
-    void onConnect(Namespace.SocketIOClient client);
+    void onConnect(SocketIOClient client);
 
 }

@@ -18,8 +18,17 @@ package com.socketio4j.socketio.messages;
 
 import java.util.UUID;
 
+/**
+ * XHR OPTIONS 预检消息，处理 CORS 预检请求
+ */
 public class XHROptionsMessage extends XHRPostMessage {
 
+    /**
+     * 构造 XHROptionsMessage
+     *
+     * @param origin    请求来源
+     * @param sessionId 会话 ID
+     */
     public XHROptionsMessage(String origin, UUID sessionId) {
         super(origin, sessionId);
     }

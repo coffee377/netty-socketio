@@ -31,19 +31,16 @@ import com.socketio4j.socketio.store.event.EventStore;
 import com.socketio4j.socketio.store.event.EventStoreMode;
 
 /**
- * A {@code StoreFactory} implementation that provides session-scoped storage backed
- * by Hazelcast and allows users to supply an {@link EventStore} of their choice.
- * <p>
- * Session data is stored in Hazelcast via {@link HazelcastStore}, while event
- * propagation is determined entirely by the provided {@link EventStore}. This
- * design allows hybrid configurations such as:
+ * Hazelcast 会话存储工厂实现
+ *
+ * <p>使用 Hazelcast 作为后端存储会话数据，事件传播由 {@link EventStore} 决定，
+ * 支持混合配置：
  * <ul>
- *     <li>Hazelcast session storage + Kafka event distribution</li>
- *     <li>Hazelcast session storage + Redis Streams event distribution</li>
- *     <li>Hazelcast session storage + in-memory event propagation (local only)</li>
+ *   <li>Hazelcast 会话 + Kafka 事件分发</li>
+ *   <li>Hazelcast 会话 + Redis Streams 事件分发</li>
+ *   <li>Hazelcast 会话 + 内存事件传播（仅本地）</li>
  * </ul>
- * <p>
- * If no {@link EventStore} is supplied, {@link HazelcastPubSubEventStore} is used by default.
+ * 未指定 EventStore 时默认使用 {@link HazelcastPubSubEventStore}
  */
 public class HazelcastStoreFactory extends BaseStoreFactory {
 
@@ -53,14 +50,11 @@ public class HazelcastStoreFactory extends BaseStoreFactory {
     private final EventStore eventStore;
 
     /**
-     * Creates a {@code HazelcastStoreFactory} using the provided Hazelcast instance and
-     * a caller-supplied {@link EventStore}.
+     * 创建使用指定 EventStore 的 HazelcastStoreFactory
      *
-     * @apiNote Added in API version {@code 4.0.0}
-     * 
-     * @param hazelcastClient non-null Hazelcast instance
-     * @param eventStore      non-null event store implementation
-     * @throws NullPointerException if either argument is {@code null}
+     * @param hazelcastClient Hazelcast 实例（不能为 null）
+     * @param eventStore      事件存储实现（不能为 null）
+     * @throws NullPointerException 任一参数为 null 时抛出
      */
     public HazelcastStoreFactory(@NotNull HazelcastInstance hazelcastClient,
                                  @NotNull EventStore eventStore) {
@@ -69,14 +63,11 @@ public class HazelcastStoreFactory extends BaseStoreFactory {
     }
 
     /**
-     * Creates a {@code HazelcastStoreFactory} using default Hazelcast-backed event distribution.
-     * <p>
-     * Session data remains in Hazelcast, while events are propagated via {@link HazelcastPubSubEventStore}
-     * in {@link EventStoreMode#MULTI_CHANNEL} mode.
+     * 创建使用默认 Hazelcast 事件分发的 HazelcastStoreFactory
      *
-     * @apiNote Added in API version {@code 4.0.0}
-     * 
-     * @param hazelcastClient non-null Hazelcast instance
+     * <p>使用 {@link HazelcastPubSubEventStore} 多通道模式
+     *
+     * @param hazelcastClient Hazelcast 实例（不能为 null）
      */
     public HazelcastStoreFactory(@NotNull HazelcastInstance hazelcastClient) {
         this(hazelcastClient,

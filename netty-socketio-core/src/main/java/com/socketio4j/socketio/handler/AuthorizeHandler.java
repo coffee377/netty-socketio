@@ -69,6 +69,12 @@ import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+/**
+ * 授权处理器，负责新连接的认证、会话创建和初始握手
+ *
+ * <p>处理 HTTP 层面的连接建立，包括路径校验、授权检查、传输方式选择、
+ * 会话 ID 生成和 OPEN 数据包的发送。从 Netty pipeline 角度看，这是连接建立的入口
+ */
 @Sharable
 public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Disconnectable {
 
@@ -84,6 +90,18 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
     private final AckManager ackManager;
     private final ClientsBox clientsBox;
 
+    /**
+     * 构造 AuthorizeHandler
+     *
+     * @param connectPath   Socket.IO 连接路径
+     * @param scheduler     可取消的调度器
+     * @param configuration 全局配置
+     * @param namespacesHub 命名空间集线器
+     * @param storeFactory  存储工厂
+     * @param disconnectable 可断开组件集线器
+     * @param ackManager    ACK 管理器
+     * @param clientsBox    客户端容器
+     */
     public AuthorizeHandler(String connectPath, CancelableScheduler scheduler, Configuration configuration, NamespacesHub namespacesHub, StoreFactory storeFactory,
             DisconnectableHub disconnectable, AckManager ackManager, ClientsBox clientsBox) {
         super();
@@ -97,6 +115,11 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         this.clientsBox = clientsBox;
     }
 
+    /**
+     * Channel 激活时调度首包超时检测
+     *
+     * <p>若客户端在 firstDataTimeout 内未发送任何数据，自动关闭连接
+     */
     @Override
     public void channelActive(final ChannelHandlerContext ctx) throws Exception {
         log.debug("Channel activated for client: {}", ctx.channel().remoteAddress());
@@ -109,6 +132,11 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         super.channelActive(ctx);
     }
 
+    /**
+     * 读取 HTTP 请求，进行路径验证和连接授权
+     *
+     * <p>取消首包超时检测，根据路径和会话 ID 判断是新连接还是已有会话
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         SchedulerKey key = new SchedulerKey(Type.PING_TIMEOUT, ctx.channel());
@@ -155,6 +183,19 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         ctx.fireChannelRead(msg);
     }
 
+    /**
+     * 执行连接授权逻辑
+     *
+     * <p>验证请求路径、传输方式，执行授权监听器，创建 ClientHead 并发送 OPEN 数据包
+     *
+     * @param ctx     ChannelHandlerContext
+     * @param channel Channel
+     * @param origin  请求来源
+     * @param params  请求参数
+     * @param req     HTTP 请求
+     * @return 授权成功返回 true
+     * @throws IOException 可能抛出的 IO 异常
+     */
     private boolean authorize(ChannelHandlerContext ctx, Channel channel, String origin, Map<String, List<String>> params, FullHttpRequest req)
             throws IOException {
         if (log.isDebugEnabled()) {
@@ -281,6 +322,12 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         return true;
     }
 
+    /**
+     * 写入并刷新传输错误响应
+     *
+     * @param channel Channel
+     * @param origin  请求来源
+     */
     private void writeAndFlushTransportError(Channel channel, String origin) {
         Map<String, Object> errorData = new HashMap<>();
         errorData.put("code", 0);
@@ -291,9 +338,12 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
     }
 
     /**
-     * This method will either generate a new random sessionId or will retrieve the value stored
-     * in the "io" cookie.  Failures to parse will cause a logging warning to be generated and a
-     * random uuid to be generated instead (same as not passing a cookie in the first place).
+     * 从请求中获取或生成会话 ID
+     *
+     * <p>优先从 "io" 请求头或 Cookie 中读取，解析失败时生成随机 UUID
+     *
+     * @param headers HTTP 请求头
+     * @return 会话 UUID
      */
     private UUID generateOrGetSessionIdFromRequest(HttpHeaders headers) {
         List<String> values = headers.getAll("io");
@@ -322,6 +372,11 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         return UUID.randomUUID();
     }
 
+    /**
+     * 根据会话 ID 连接客户端
+     *
+     * @param sessionId 会话 ID
+     */
     public void connect(UUID sessionId) {
         if (log.isDebugEnabled()) {
             log.debug("Connecting client with session ID: {}", sessionId);
@@ -330,6 +385,13 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         scheduler.cancel(key);
     }
 
+    /**
+     * 将客户端连接到默认命名空间
+     *
+     * <p>发送 CONNECT 数据包，发布连接事件，触发命名空间的 onConnect 回调
+     *
+     * @param client 客户端头部
+     */
     public void connect(ClientHead client) {
         if (log.isDebugEnabled()) {
             log.debug("Connecting client: {} to default namespace", client.getSessionId());
@@ -359,6 +421,11 @@ public class AuthorizeHandler extends ChannelInboundHandlerAdapter implements Di
         }
     }
 
+    /**
+     * 客户端断开时将其从 ClientsBox 中移除
+     *
+     * @param client 断开的客户端
+     */
     @Override
     public void onDisconnect(ClientHead client) {
         if (log.isDebugEnabled()) {

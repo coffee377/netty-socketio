@@ -18,20 +18,41 @@ package com.socketio4j.socketio.messages;
 
 import java.util.UUID;
 
+/**
+ * HTTP 消息基类，包含请求来源和会话 ID
+ *
+ * <p>所有 EncoderHandler 编码的消息类型均继承此类
+ */
 public abstract class HttpMessage {
 
     private final String origin;
     private final UUID sessionId;
 
+    /**
+     * 构造 HttpMessage
+     *
+     * @param origin    请求来源
+     * @param sessionId 会话 ID
+     */
     public HttpMessage(String origin, UUID sessionId) {
         this.origin = origin;
         this.sessionId = sessionId;
     }
 
+    /**
+     * 获取请求来源
+     *
+     * @return origin
+     */
     public String getOrigin() {
         return origin;
     }
 
+    /**
+     * 获取会话 ID
+     *
+     * @return UUID
+     */
     public UUID getSessionId() {
         return sessionId;
     }

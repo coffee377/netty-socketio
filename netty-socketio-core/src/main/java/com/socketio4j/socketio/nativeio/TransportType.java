@@ -16,10 +16,21 @@
  */
 package com.socketio4j.socketio.nativeio;
 
+/**
+ * Netty 原生传输类型枚举
+ *
+ * <p>AUTO 自动选择最佳可用传输（优先级：io_uring -> epoll -> kqueue -> nio），
+ * 也可手动指定具体实现
+ */
 public enum TransportType {
-    AUTO, // select the best available, io_uring -> epoll -> kqueue -> nio
-    NIO, // JVM default
-    EPOLL, // Linux
-    KQUEUE, // BSD / macOS
-    IO_URING; // Linux 5.1+, recommended production version 5.15+ (LTS)
+    /** 自动选择最佳可用传输 */
+    AUTO,
+    /** JVM 默认 NIO 传输 */
+    NIO,
+    /** Linux epoll 传输 */
+    EPOLL,
+    /** BSD/macOS kqueue 传输 */
+    KQUEUE,
+    /** Linux 5.1+ io_uring 传输，推荐生产环境 5.15+（LTS） */
+    IO_URING;
 }

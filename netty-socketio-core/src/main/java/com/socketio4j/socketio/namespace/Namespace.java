@@ -68,8 +68,10 @@ import com.socketio4j.socketio.transport.NamespaceClient;
 
 
 /**
- * Hub object for all clients in one namespace.
- * Namespace shares by different namespace-clients.
+ * 命名空间，管理同一命名空间下的所有客户端
+ *
+ * <p>负责客户端连接/断开、房间管理、事件分发、广播操作等核心功能，
+ * 不同命名空间之间的客户端和房间相互隔离
  *
  * @see com.socketio4j.socketio.transport.NamespaceClient
  */
@@ -117,11 +119,21 @@ public class Namespace implements SocketIONamespace {
 
     }
 
+    /**
+     * 添加客户端到命名空间
+     *
+     * @param client Socket.IO 客户端
+     */
     public void addClient(SocketIOClient client) {
         allClients.put(client.getSessionId(), client);
     }
 
     @Override
+    /**
+     * 获取命名空间名称
+     *
+     * @return 命名空间名称
+     */
     public String getName() {
         return name;
     }
@@ -159,13 +171,21 @@ public class Namespace implements SocketIONamespace {
         catchAllEventListeners.remove(listener);
     }
 
-    //alias of addOnAnyEventListener
+    /**
+     * 添加全局事件监听器（addOnAnyEventListener 的别名）
+     *
+     * @param listener 全局事件监听器
+     */
     @Override
     public void onAny(CatchAllEventListener listener) {
         addOnAnyEventListener(listener);
     }
 
-    //alias of removeOnAnyEventListener
+    /**
+     * 移除全局事件监听器（removeOnAnyEventListener 的别名）
+     *
+     * @param listener 全局事件监听器
+     */
     @Override
     public void offAny(CatchAllEventListener listener) {
         removeOnAnyEventListener(listener);
@@ -191,6 +211,14 @@ public class Namespace implements SocketIONamespace {
         eventInterceptors.add(eventInterceptor);
     }
 
+    /**
+     * 处理命名空间中的事件分发
+     *
+     * @param client    发送事件的命名空间客户端
+     * @param eventName 事件名称
+     * @param args      事件参数列表
+     * @param ackRequest 确认请求
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void onEvent(NamespaceClient client, String eventName, List<Object> args, AckRequest ackRequest) {
         long start = System.nanoTime();
@@ -420,6 +448,12 @@ public class Namespace implements SocketIONamespace {
         storeFactory.eventStore().publish(EventType.BULK_JOIN, new BulkJoinMessage(sessionId, rooms, getName()));
     }
 
+    /**
+     * 向指定房间的所有客户端分发数据包
+     *
+     * @param room   房间名
+     * @param packet 数据包
+     */
     public void dispatch(String room, Packet packet) {
         int size = forEachRoomClient(room, client -> {
             client.send(packet);
@@ -430,6 +464,13 @@ public class Namespace implements SocketIONamespace {
         }
     }
 
+    /**
+     * 遍历指定房间的所有客户端并执行操作
+     *
+     * @param room   房间名
+     * @param action 要执行的操作
+     * @return 成功执行操作的客户端数量
+     */
     public int forEachRoomClient(String room, Consumer<SocketIOClient> action) {
         Objects.requireNonNull(room, "room must not be null");
         Objects.requireNonNull(action, "action must not be null");
@@ -472,11 +513,23 @@ public class Namespace implements SocketIONamespace {
     }
 
 
+    /**
+     * 让指定会话加入房间
+     *
+     * @param room      房间名
+     * @param sessionId 会话 ID
+     */
     public void join(String room, UUID sessionId) {
         join(roomClients, room, sessionId);
         join(clientRooms, sessionId, room);
     }
 
+    /**
+     * 让指定会话离开房间并发布离开消息
+     *
+     * @param room      房间名
+     * @param sessionId 会话 ID
+     */
     public void leaveRoom(String room, UUID sessionId) {
         leave(room, sessionId);
         storeFactory.eventStore().publish(EventType.LEAVE, new LeaveMessage(sessionId, room, getName()));
@@ -511,11 +564,23 @@ public class Namespace implements SocketIONamespace {
     }
 
 
+    /**
+     * 让指定会话离开房间
+     *
+     * @param room      房间名
+     * @param sessionId 会话 ID
+     */
     public void leave(String room, UUID sessionId) {
         leave(roomClients, room, sessionId);
         leave(clientRooms, sessionId, room);
     }
 
+    /**
+     * 获取客户端加入的所有房间
+     *
+     * @param client Socket.IO 客户端
+     * @return 房间名集合
+     */
     public Set<String> getRooms(SocketIOClient client) {
         Set<String> res = clientRooms.get(client.getSessionId());
         if (res == null) {

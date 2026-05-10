@@ -16,11 +16,6 @@
  */
 package com.socketio4j.socketio.store.kafka.serialization;
 
-/**
- * @author https://github.com/sanjomo
- * @date 15/12/25 6:21 pm
- */
-
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +25,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.socketio4j.socketio.store.event.EventMessage;
 
+/**
+ * Kafka 事件消息反序列化器
+ *
+ * <p>使用 Jackson 将字节数组反序列化为 EventMessage，
+ * 用于 Kafka 消费者接收事件消息
+ */
 public final class EventMessageDeserializer
         implements Deserializer<EventMessage> {
     private static final Logger log = LoggerFactory.getLogger(EventMessageDeserializer.class);

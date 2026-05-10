@@ -19,11 +19,22 @@ package com.socketio4j.socketio.messages;
 import com.socketio4j.socketio.Transport;
 import com.socketio4j.socketio.handler.ClientHead;
 
+/**
+ * 出站数据包消息，携带待发送的 ClientHead 和传输方式信息
+ *
+ * <p>由 ClientHead.send() 创建，EncoderHandler 据此将数据包写入相应传输通道
+ */
 public class OutPacketMessage extends HttpMessage {
 
     private final ClientHead clientHead;
     private final Transport transport;
 
+    /**
+     * 构造 OutPacketMessage
+     *
+     * @param clientHead 客户端头部
+     * @param transport  传输方式
+     */
     public OutPacketMessage(ClientHead clientHead, Transport transport) {
         super(clientHead.getOrigin(), clientHead.getSessionId());
 
@@ -31,10 +42,20 @@ public class OutPacketMessage extends HttpMessage {
         this.transport = transport;
     }
 
+    /**
+     * 获取传输方式
+     *
+     * @return Transport
+     */
     public Transport getTransport() {
         return transport;
     }
 
+    /**
+     * 获取客户端头部
+     *
+     * @return ClientHead
+     */
     public ClientHead getClientHead() {
         return clientHead;
     }

@@ -18,6 +18,11 @@ package com.socketio4j.socketio.store.event;
 
 import java.util.UUID;
 
+/**
+ * 加入房间消息
+ *
+ * <p>当客户端加入指定房间时发布，包含会话 ID、房间名和命名空间
+ */
 public class JoinMessage extends EventMessage {
 
     private static final long serialVersionUID = -944515928988033174L;

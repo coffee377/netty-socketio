@@ -18,8 +18,16 @@ package com.socketio4j.socketio.listener;
 
 import com.socketio4j.socketio.SocketIOClient;
 
+/**
+ * 连接事件监听器，在客户端成功连接时回调
+ */
 public interface ConnectListener {
 
+    /**
+     * 客户端连接时调用
+     *
+     * @param client 连接的客户端
+     */
     void onConnect(SocketIOClient client);
 
 }

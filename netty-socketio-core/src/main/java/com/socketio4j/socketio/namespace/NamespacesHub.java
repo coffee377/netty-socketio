@@ -27,6 +27,11 @@ import com.socketio4j.socketio.SocketIOClient;
 import com.socketio4j.socketio.SocketIONamespace;
 import com.socketio4j.socketio.misc.CompositeIterable;
 
+/**
+ * 命名空间管理器
+ *
+ * <p>管理所有命名空间的创建、获取、删除，提供跨命名空间的房间客户端查询
+ */
 public class NamespacesHub {
 
     private final ConcurrentMap<String, SocketIONamespace> namespaces = new ConcurrentHashMap<>();
@@ -36,6 +41,12 @@ public class NamespacesHub {
         this.configuration = configuration;
     }
 
+    /**
+     * 创建或获取指定名称的命名空间
+     *
+     * @param name 命名空间名称
+     * @return 命名空间实例
+     */
     public Namespace create(String name) {
         Namespace namespace = (Namespace) namespaces.get(name);
         if (namespace == null) {
@@ -48,6 +59,12 @@ public class NamespacesHub {
         return namespace;
     }
 
+    /**
+     * 获取所有命名空间中指定房间的客户端
+     *
+     * @param room 房间名
+     * @return 客户端迭代器
+     */
     public Iterable<SocketIOClient> getRoomClients(String room) {
         List<Iterable<SocketIOClient>> allClients = new ArrayList<Iterable<SocketIOClient>>();
         for (SocketIONamespace namespace : namespaces.values()) {
@@ -57,10 +74,21 @@ public class NamespacesHub {
         return new CompositeIterable<>(allClients);
     }
 
+    /**
+     * 获取指定名称的命名空间
+     *
+     * @param name 命名空间名称
+     * @return 命名空间，不存在时返回 null
+     */
     public Namespace get(String name) {
         return (Namespace) namespaces.get(name);
     }
 
+    /**
+     * 移除指定名称的命名空间并断开其所有客户端
+     *
+     * @param name 命名空间名称
+     */
     public void remove(String name) {
         SocketIONamespace namespace = namespaces.remove(name);
         if (namespace != null) {
@@ -68,6 +96,11 @@ public class NamespacesHub {
         }
     }
 
+    /**
+     * 获取所有命名空间
+     *
+     * @return 命名空间集合
+     */
     public Collection<SocketIONamespace> getAllNamespaces() {
         return namespaces.values();
     }

@@ -28,15 +28,10 @@ import io.micrometer.core.instrument.Timer;
 import net.agkn.hll.HLL;
 
 /**
- * Per-namespace metric container.
+ * 命名空间级别指标的容器，每个命名空间对应一个实例
  *
- * All meters are registered exactly once during construction.
- * Runtime code must only mutate counters, timers, and atomic values.
- *
- * Units are explicitly defined to guarantee Prometheus + OTLP consistency.
- *
- * @author https://github.com/sanjomo
- * @date 05/01/26 3:10 pm
+ * <p>所有 Meter 在构造时仅注册一次，运行时仅修改计数器、计时器和原子值。
+ * 单位定义明确以保证 Prometheus 和 OTLP 的兼容性
  */
 public final class NamespaceMeters {
 
@@ -49,8 +44,7 @@ public final class NamespaceMeters {
     private final Counter eventUnknown;
 
     /**
-     * HyperLogLog for distinct unknown event names.
-     * (namespace:eventName hashed externally)
+     * 未知事件名的 HyperLogLog 基数估计
      */
     // executor-thread only (never exposed)
     private final HLL unknownEventActive;
@@ -105,7 +99,11 @@ public final class NamespaceMeters {
     private long lastPublishNanos = System.nanoTime();
 
     /**
-     * MUST be called only from the single-thread executor.
+     * 记录未知事件名称的 hash 值
+     *
+     * <p>必须仅在单线程执行器中调用
+     *
+     * @param hash 事件名称的 hash 值
      */
     void recordUnknownEvent(long hash) {
         unknownEventActive.addRaw(hash);
@@ -159,6 +157,13 @@ public final class NamespaceMeters {
 
     /* ===================== Constructor ===================== */
 
+    /**
+     * 构造 NamespaceMeters，注册所有 Micrometer 指标
+     *
+     * @param registry         MeterRegistry
+     * @param ns               命名空间名称
+     * @param histogramEnabled 是否启用百分位直方图
+     */
     NamespaceMeters(MeterRegistry registry, String ns, boolean histogramEnabled) {
         Objects.requireNonNull(registry);
         Objects.requireNonNull(ns); //can be empty

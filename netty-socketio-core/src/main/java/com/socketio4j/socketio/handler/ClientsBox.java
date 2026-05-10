@@ -24,12 +24,20 @@ import com.socketio4j.socketio.HandshakeData;
 
 import io.netty.channel.Channel;
 
+/**
+ * 客户端容器，维护会话 ID 到 ClientHead 及 Channel 到 ClientHead 的双向映射
+ */
 public class ClientsBox {
 
     private final Map<UUID, ClientHead> uuid2clients = new ConcurrentHashMap<>();
     private final Map<Channel, ClientHead> channel2clients = new ConcurrentHashMap<>();
 
-    // TODO use storeFactory
+    /**
+     * 根据会话 ID 获取握手数据
+     *
+     * @param sessionId 会话 ID
+     * @return HandshakeData，不存在时返回 null
+     */
     public HandshakeData getHandshakeData(UUID sessionId) {
         ClientHead client = uuid2clients.get(sessionId);
         if (client == null) {
@@ -39,27 +47,60 @@ public class ClientsBox {
         return client.getHandshakeData();
     }
 
+    /**
+     * 注册客户端
+     *
+     * @param clientHead 客户端头部
+     */
     public void addClient(ClientHead clientHead) {
         uuid2clients.put(clientHead.getSessionId(), clientHead);
     }
 
+    /**
+     * 根据会话 ID 移除并返回客户端
+     *
+     * @param sessionId 会话 ID
+     * @return 被移除的 ClientHead，不存在时返回 null
+     */
     public ClientHead removeClient(UUID sessionId) {
         return uuid2clients.remove(sessionId);
     }
 
+    /**
+     * 根据会话 ID 查找客户端
+     *
+     * @param sessionId 会话 ID
+     * @return ClientHead，不存在时返回 null
+     */
     public ClientHead get(UUID sessionId) {
         return uuid2clients.get(sessionId);
     }
 
+    /**
+     * 绑定 Channel 到客户端
+     *
+     * @param channel    Netty Channel
+     * @param clientHead 客户端头部
+     */
     public void add(Channel channel, ClientHead clientHead) {
         channel2clients.put(channel, clientHead);
     }
 
+    /**
+     * 移除 Channel 的绑定
+     *
+     * @param channel Netty Channel
+     */
     public void remove(Channel channel) {
         channel2clients.remove(channel);
     }
 
-
+    /**
+     * 根据 Channel 查找客户端
+     *
+     * @param channel Netty Channel
+     * @return ClientHead，不存在时返回 null
+     */
     public ClientHead get(Channel channel) {
         return channel2clients.get(channel);
     }

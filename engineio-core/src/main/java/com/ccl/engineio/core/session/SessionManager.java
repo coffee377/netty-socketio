@@ -139,18 +139,38 @@ public class SessionManager {
         }
     }
 
+    /**
+     * 设置心跳响应超时时间
+     *
+     * @param pingTimeout 超时时间（毫秒）
+     */
     public void setPingTimeout(long pingTimeout) {
         this.pingTimeout = pingTimeout;
     }
 
+    /**
+     * 设置心跳发送间隔
+     *
+     * @param pingInterval 间隔时长（毫秒）
+     */
     public void setPingInterval(long pingInterval) {
         this.pingInterval = pingInterval;
     }
 
+    /**
+     * 获取心跳响应超时时间
+     *
+     * @return 超时时间（毫秒）
+     */
     public long getPingTimeout() {
         return pingTimeout;
     }
 
+    /**
+     * 获取心跳发送间隔
+     *
+     * @return 间隔时长（毫秒）
+     */
     public long getPingInterval() {
         return pingInterval;
     }

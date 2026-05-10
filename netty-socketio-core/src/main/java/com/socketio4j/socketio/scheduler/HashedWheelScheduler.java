@@ -25,6 +25,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 
+/**
+ * 基于 Netty HashedWheelTimer 的调度器实现
+ *
+ * <p>使用时间轮算法进行高效的任务调度，适用于高并发场景
+ */
 public class HashedWheelScheduler implements CancelableScheduler {
 
     private final Map<SchedulerKey, Timeout> scheduledFutures = new ConcurrentHashMap<>();
@@ -54,11 +59,26 @@ public class HashedWheelScheduler implements CancelableScheduler {
     }
 
     @Override
+    /**
+     * 调度一个一次性任务
+     *
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     public void schedule(final Runnable runnable, long delay, TimeUnit unit) {
         executorService.newTimeout(timeout -> runnable.run(), delay, unit);
     }
 
     @Override
+    /**
+     * 在 ChannelHandlerContext 的事件循环中调度回调任务
+     *
+     * @param key      调度任务键
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     public void scheduleCallback(final SchedulerKey key, final Runnable runnable, long delay, TimeUnit unit) {
         Timeout timeout = executorService.newTimeout(timeout1 -> ctx.executor().execute(() -> {
             try {
@@ -74,6 +94,14 @@ public class HashedWheelScheduler implements CancelableScheduler {
     }
 
     @Override
+    /**
+     * 调度一个可取消的任务
+     *
+     * @param key      调度任务键
+     * @param runnable 待执行的任务
+     * @param delay    延迟时间
+     * @param unit     时间单位
+     */
     public void schedule(final SchedulerKey key, final Runnable runnable, long delay, TimeUnit unit) {
         Timeout timeout = executorService.newTimeout(timeout1 -> {
             try {

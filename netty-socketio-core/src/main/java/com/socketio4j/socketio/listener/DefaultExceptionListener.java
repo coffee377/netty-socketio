@@ -25,6 +25,9 @@ import com.socketio4j.socketio.SocketIOClient;
 
 import io.netty.channel.ChannelHandlerContext;
 
+/**
+ * 默认异常监听器实现，将各类异常通过 SLF4J 记录错误日志
+ */
 public class DefaultExceptionListener extends ExceptionListenerAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultExceptionListener.class);

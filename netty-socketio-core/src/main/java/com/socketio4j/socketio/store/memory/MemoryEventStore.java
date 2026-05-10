@@ -24,6 +24,12 @@ import com.socketio4j.socketio.store.event.EventStoreType;
 import com.socketio4j.socketio.store.event.EventType;
 
 
+/**
+ * 内存事件存储实现
+ *
+ * <p>空操作实现，所有事件发布/订阅方法均为空，
+ * 适用于纯本地单节点模式，不进行跨节点事件传播
+ */
 public class MemoryEventStore implements EventStore {
 
     @Override

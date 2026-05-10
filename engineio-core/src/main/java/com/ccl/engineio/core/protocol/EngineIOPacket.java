@@ -26,9 +26,18 @@ public final class EngineIOPacket<T> {
      */
     private final T data;
 
+    private final DataType dataType;
+
     private EngineIOPacket(Builder<T> builder) {
         this.type = builder.type;
         this.data = builder.data;
+        if (builder.data instanceof String) {
+            this.dataType = DataType.PLAINTEXT;
+        } else if (builder.data instanceof byte[]) {
+            this.dataType = DataType.BINARY;
+        } else {
+            this.dataType = DataType.OBJECT;
+        }
     }
 
     /**
@@ -58,6 +67,24 @@ public final class EngineIOPacket<T> {
      */
     public Type getType() {
         return type;
+    }
+
+    /**
+     * 检查数据包负载是否为二进制类型
+     *
+     * @return 二进制数据时返回 true
+     */
+    public boolean isBinary() {
+        return DataType.BINARY.equals(this.dataType);
+    }
+
+    /**
+     * 检查数据包负载是否为文本类型
+     *
+     * @return 文本数据时返回 true
+     */
+    public boolean isText() {
+        return DataType.PLAINTEXT.equals(this.dataType);
     }
 
     /**

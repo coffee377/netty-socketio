@@ -52,6 +52,12 @@ import io.netty.handler.codec.http.websocketx.WebSocket13FrameDecoder;
 
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
+/**
+ * HTTP 长轮询传输处理器
+ *
+ * <p>处理基于 HTTP 长轮询的 Engine.IO 传输方式，
+ * 支持 GET（数据拉取）、POST（数据推送）、OPTIONS（跨域）和断开操作
+ */
 @Sharable
 public class PollingTransport extends ChannelInboundHandlerAdapter {
 

@@ -18,8 +18,17 @@ package com.socketio4j.socketio.messages;
 
 import java.util.UUID;
 
+/**
+ * XHR POST 消息，表示客户端通过 HTTP POST 发送的数据
+ */
 public class XHRPostMessage extends HttpMessage {
 
+    /**
+     * 构造 XHRPostMessage
+     *
+     * @param origin    请求来源
+     * @param sessionId 会话 ID
+     */
     public XHRPostMessage(String origin, UUID sessionId) {
         super(origin, sessionId);
     }

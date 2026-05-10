@@ -22,15 +22,30 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 事件存储接口
+ *
+ * <p>定义跨节点事件发布/订阅的 SPI，支持单通道和多通道模式
+ */
 public interface EventStore {
 
     Logger log = LoggerFactory.getLogger(EventStore.class);
 
 
+    /**
+     * 获取事件存储通道模式
+     *
+     * @return 通道模式，默认多通道
+     */
     default EventStoreMode getEventStoreMode() {
         return EventStoreMode.MULTI_CHANNEL;
     }
 
+    /**
+     * 获取事件存储类型
+     *
+     * @return 存储类型，默认 PUBSUB
+     */
     default EventStoreType getEventStoreType() {
         return EventStoreType.PUBSUB;
     }

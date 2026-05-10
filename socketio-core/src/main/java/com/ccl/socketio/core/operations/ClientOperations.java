@@ -1,4 +1,4 @@
-package com.ccl.socketio.core.namespace;
+package com.ccl.socketio.core.operations;
 
 import com.ccl.socketio.core.protocol.SocketPacket;
 import com.ccl.socketio.core.protocol.data.Event;

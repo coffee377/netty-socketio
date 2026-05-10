@@ -4,11 +4,25 @@ import com.ccl.socketio.core.protocol.SocketPacket;
 import com.ccl.socketio.server.listener.SocketIOListener;
 import io.netty.channel.*;
 
+/**
+ * Socket.IO 业务事件处理器
+ *
+ * <p>接收解码后的 SocketPacket 并委托给 {@link SocketIOListener} 处理业务逻辑。
+ * 支持连接、断开、事件和错误四种回调类型。
+ *
+ * @author coffee377
+ * @since 4.0.0-alpha.0
+ */
 @ChannelHandler.Sharable
 public class BusinessEventHandler extends SimpleChannelInboundHandler<SocketPacket> {
 
     private final SocketIOListener listener;
 
+    /**
+     * 创建业务事件处理器
+     *
+     * @param listener SocketIO 事件监听器
+     */
     public BusinessEventHandler(SocketIOListener listener) {
         this.listener = listener;
     }

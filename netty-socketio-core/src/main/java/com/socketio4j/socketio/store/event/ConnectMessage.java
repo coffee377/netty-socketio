@@ -18,6 +18,11 @@ package com.socketio4j.socketio.store.event;
 
 import java.util.UUID;
 
+/**
+ * 客户端连接消息
+ *
+ * <p>当客户端建立连接时发布，包含会话 ID
+ */
 public class ConnectMessage extends EventMessage {
 
     private static final long serialVersionUID = 3108918714495865101L;
