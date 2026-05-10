@@ -4,6 +4,7 @@ import com.ccl.engineio.core.codec.EngineIODecoder;
 import com.ccl.engineio.core.codec.impl.EngineIODecoderV4;
 import com.ccl.engineio.core.entity.ClientContext;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
+import com.ccl.engineio.core.protocol.TransportType;
 import com.ccl.engineio.netty.EngineMessage;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -49,9 +50,22 @@ public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessage> 
             log.trace("IN message: {} for sessionId: {}", content.toString(CharsetUtil.UTF_8), client.getSessionId());
         }
 
-        String result = content.readString(content.readableBytes(), CharsetUtil.UTF_8);
+        TransportType transport = msg.getTransport();
+        if (TransportType.WEBSOCKET.equals(transport)) {
+            byte[] bytes = new byte[content.readableBytes()];
+            content.readBytes(bytes);
+            List<EngineIOPacket<?>> packets = decoder.decodePayload(bytes);
+            for (EngineIOPacket<?> packet : packets) {
+                processSinger(packet, out, ctx);
+            }
+        } else {
+            String result = content.readString(content.readableBytes(), CharsetUtil.UTF_8);
+            EngineIOPacket<?> packet = decoder.decodePacket(result);
+            processSinger(packet, out, ctx);
+        }
+    }
 
-        EngineIOPacket<?> packet = decoder.decodePacket(result);
+    private void processSinger(EngineIOPacket<?> packet, List<Object> out, ChannelHandlerContext ctx) {
         EngineIOPacket.Type type = packet.getType();
 
         if (log.isDebugEnabled()) {
@@ -72,6 +86,5 @@ public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessage> 
             case UPGRADE:
             case NOOP:
         }
-
     }
 }

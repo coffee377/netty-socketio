@@ -3,7 +3,9 @@ package com.ccl.socketio.netty.handler.codec;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.codec.SocketDecoder;
+import com.ccl.socketio.core.codec.SocketEncoder;
 import com.ccl.socketio.core.codec.impl.SocketIODecoderV5;
+import com.ccl.socketio.core.codec.impl.SocketIOEncoderV5;
 import com.ccl.socketio.core.protocol.SocketPacket;
 import com.ccl.socketio.core.protocol.SocketPacketType;
 import com.ccl.socketio.core.protocol.data.Event;
@@ -15,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,12 +46,15 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
     private static final Logger log = LoggerFactory.getLogger(SocketPacketDecoder.class);
 
     private final SocketDecoder decoder;
+    private final SocketEncoder encoder;
 
     public SocketPacketDecoder() {
+        this.encoder = new SocketIOEncoderV5();
         this.decoder = new SocketIODecoderV5();
     }
 
-    public SocketPacketDecoder(SocketDecoder decoder) {
+    public SocketPacketDecoder(SocketEncoder encoder, SocketDecoder decoder) {
+        this.encoder = encoder;
         this.decoder = decoder;
     }
 
@@ -67,6 +73,7 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
 
     @Override
     protected void decode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
+
         Object data = msg.getData();
         SocketPacket<?> inPacket;
         if (data instanceof String) {
@@ -93,6 +100,11 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
         String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
         SocketPacket.Type type = inPacket.getType();
 
+        if (log.isTraceEnabled()) {
+            String packetStr = encoder.encode(inPacket);
+            log.trace("IN [{}] {}", inPacket.getType(), packetStr);
+        }
+
         SocketPacket<?> outPacket = null;
 
         switch (type) {
@@ -113,6 +125,7 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
             }};
             SocketPacket<HashMap<String, Object>> packet = SocketPacket.builder()
                     .type(SocketPacket.Type.CONNECT)
+                    .namespace(inPacket.getNamespace())
                     .data(cdata).build();
             ctx.writeAndFlush(packet);
             return;
@@ -122,8 +135,7 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
         }
 
         if (SocketPacket.Type.BINARY_EVENT.equals(type)) {
-            // TODO: 2026/05/09 15:02 二进制事件发布不了
-            byte[] bytes = "data".getBytes(StandardCharsets.UTF_8);
+            byte[] bytes = String.format("data: %s", Instant.now().toString()).getBytes(StandardCharsets.UTF_8);
 
             Event event = new Event();
             event.setName("pong");
@@ -132,6 +144,7 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
             // 451-["pong",{"_placeholder":true,"num":0}]bZGF0YQ==
             SocketPacket<?> eventPacket = SocketPacket.builder()
                     .type(SocketPacket.Type.BINARY_EVENT)
+                    .namespace(inPacket.getNamespace())
                     .attachmentsCount(1)
                     .data(event).build();
             eventPacket.addAttachment(bytes);
