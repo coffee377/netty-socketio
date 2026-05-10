@@ -1,12 +1,14 @@
 package com.ccl.socketio.netty.pipeline;
 
 import com.ccl.engineio.netty.handler.EngineIOHandshakeHandler;
-import com.ccl.engineio.netty.handler.codec.EngineIOCodec;
+import com.ccl.engineio.netty.handler.codec.EnginePacketDecoder;
+import com.ccl.engineio.netty.handler.codec.EnginePacketEncoder;
 import com.ccl.engineio.netty.transport.PollingTransport;
 import com.ccl.socketio.core.event.EventRouter;
 import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.netty.handler.SocketIOEventRouterHandler;
-import com.ccl.socketio.netty.handler.codec.SocketIOCodec;
+import com.ccl.socketio.netty.handler.codec.SocketPacketDecoder;
+import com.ccl.socketio.netty.handler.codec.SocketPacketEncoder;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
 import io.netty.handler.stream.ChunkedWriteHandler;
@@ -96,6 +98,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                (int) pingTimeout / 1000,
 //                0, TimeUnit.SECONDS));
 
+        pipeline.addLast("EnginePacketEncoder", new EnginePacketEncoder());
         // EngineIO握手处理器（核心）
         pipeline.addLast("engineHandshake", new EngineIOHandshakeHandler("/socket.io", 65536));
 
@@ -104,18 +107,16 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 
         // Engine.IO Polling 处理器（处理 polling 握手、GET/POST）
         pipeline.addLast("polling", new PollingTransport());
+        pipeline.addLast("enginePacketDecoder", new EnginePacketDecoder());
 
-        // --- Engine.IO codec: ByteBuf → EnginePacket ---
-        pipeline.addLast("engineCodec", new EngineIOCodec());
+        pipeline.addLast("SocketPacketEncoder", new SocketPacketEncoder());
+        pipeline.addLast("SocketIODecoder", new SocketPacketDecoder());
 
-        pipeline.addLast("socketCodec", new SocketIOCodec());
+//        pipeline.addLast("socketCodec", new SocketIOCodec());
 
         // --- Engine.IO session management ---
 //        pipeline.addLast("engineSession", new EngineIOSessionHandler());
 
-//        // --- Socket.IO codec: EnginePacket → SocketPacket ---
-//        pipeline.addLast("socketIOCodec", new SocketIOCodecHandler());
-//
 //        // --- Socket.IO namespace management ---
 //        pipeline.addLast("socketIONamespace", new SocketIONamespaceHandler(namespaceManager));
 //

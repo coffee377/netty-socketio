@@ -85,8 +85,8 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
             clientContext.setRemoteAddress(clientAddress.getAddress().toString());
         }
         ctx.channel().attr(ChannelAttributes.SESSION_ID).set(clientContext.getSessionId());
-        if (log.isDebugEnabled()) {
-            log.debug("Handshake {} successful for client {} with session id {}", request.uri(),
+        if (log.isTraceEnabled()) {
+            log.trace("Handshake {} successful for client {} with session id {}", request.uri(),
                     ctx.channel().remoteAddress(), clientContext.getSessionId());
         }
 
@@ -99,7 +99,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
 
         OpenData openData = builder.build();
         EngineIOPacket<OpenData> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(openData).build();
-        ctx.channel().writeAndFlush(packet);
+        ctx.writeAndFlush(packet);
 
     }
 

@@ -1,12 +1,18 @@
 package com.ccl.engineio.netty.transport;
 
+import com.ccl.engineio.core.entity.ClientContext;
 import com.ccl.engineio.core.parser.Parser;
 import com.ccl.engineio.core.parser.ParserV4;
 import com.ccl.engineio.core.protocol.EngineIOPacket;
+import com.ccl.engineio.core.protocol.TransportType;
+import com.ccl.engineio.core.session.SessionManager;
+import com.ccl.engineio.netty.EngineMessage;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
+import com.ccl.engineio.netty.handler.CorsUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
+import io.netty.handler.codec.MessageToMessageCodec;
 import io.netty.handler.codec.http.*;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -15,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -41,17 +48,9 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     private static final ConcurrentHashMap<String, Queue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Queue<ByteBuf>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
 
-    private final Parser phaser;
-
-    /**
-     * 默认构造函数，使用 V4 协议解析器
-     */
-    public PollingTransport() {
-        this.phaser = ParserV4.getInstance();
-    }
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
         // 1. 校验 HTTP 请求
         if (!request.decoderResult().isSuccess()) {
             sendErrorResponse(ctx, HttpResponseStatus.BAD_REQUEST);
@@ -111,7 +110,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         } else if (HttpMethod.POST.equals(request.method())) {
             handlePost(ctx, request, sid, origin);
         } else if (HttpMethod.OPTIONS.equals(request.method())) {
-            handleOptions(ctx, request, sid);
+            handleOptions(ctx, sid, origin);
         } else {
             sendErrorResponse(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED);
         }
@@ -119,23 +118,23 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
     private void handlePost(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
         ByteBuf content = request.content();
-        if (log.isDebugEnabled()) {
-            log.debug("Polling POST {} => {}", request.uri(), content.toString(StandardCharsets.UTF_8));
+        if (log.isTraceEnabled()) {
+            log.trace("POST {} => {}", request.uri(), content.toString(StandardCharsets.UTF_8));
         }
         // FullHttpRequest is reference-counted and can be released by upstream.
         // Retain the content since we pass it further down the pipeline.
-        // content = content.retain();
+        content = content.retain();
 
         // 1. 立即响应 HTTP 200（符合 Polling 协议）
         sendSuccessResponse(ctx, "ok", origin);
 
-        // 2. 解析 POST 数据包（请求体）
-        EngineIOPacket<?> packet = phaser.decodePacket(content.toString(CharsetUtil.UTF_8));
+        // 2. 传递消息到下一个处理器
+        ClientContext client = SessionManager.getInstance().getSession(sessionId);
+        EngineMessage message = EngineMessage.builder().client(client)
+                .content(content).transport(TransportType.POLLING).build();
+        ctx.fireChannelRead(message);
 
-        // 3. 执行业务逻辑（自定义处理 EngineIO 数据包）
-        processEngineIOPacket(ctx, sessionId, packet);
-
-        // 4. 若有新消息，唤醒挂起的 GET 请求
+        // 3. 若有新消息，唤醒挂起的 GET 请求
         wakeupPendingGet(sessionId, origin);
     }
 
@@ -159,24 +158,10 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         ByteBuf message;
         // 非阻塞循环：取一条 → 处理一条 → 直到队列为null
         while ((message = pendingMessages.poll()) != null) {
-            sendSuccessResponse(pendingGet.getCtx(),message, origin);
+            sendSuccessResponse(pendingGet.getCtx(), message, origin);
         }
 
         pendingGet.getPromise().setSuccess();
-    }
-
-    /**
-     * 处理 EngineIO 业务数据包
-     *
-     * <p>将解析后的 EngineIO 数据包传递给下游处理器进行业务处理。</p>
-     *
-     * @param ctx       Channel 上下文
-     * @param sessionId 会话 ID
-     * @param packet    EngineIO 数据包
-     */
-    private void processEngineIOPacket(ChannelHandlerContext ctx, String sessionId, EngineIOPacket<?> packet) {
-        // 你的业务逻辑：解析消息、存储、转发等
-        ctx.fireChannelRead(packet);
     }
 
     private void addOriginHeaders(String origin, HttpResponse res) {
@@ -189,8 +174,8 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     }
 
     private void handleGet(ChannelHandlerContext ctx, FullHttpRequest request, String sessionId, String origin) {
-        if (log.isDebugEnabled()) {
-            log.debug("Polling GET {}", request.uri());
+        if (log.isTraceEnabled()) {
+            log.trace("GET {}", request.uri());
         }
         // 1. 获取当前 Session 的待发送消息
         Queue<ByteBuf> pendingMessages = OUTPUT_PACKETS.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>());
@@ -241,8 +226,14 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         pendingGet.getPromise().setSuccess();
     }
 
-    private void handleOptions(ChannelHandlerContext ctx, FullHttpRequest request, String sid) {
-        // TODO: 2026/04/29 21:28 handleOptions
+    private void handleOptions(ChannelHandlerContext ctx, String sid, String origin) {
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NO_CONTENT);
+        CorsUtil.addCorsHeaders(response, origin);
+        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS");
+        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type, Authorization");
+        response.headers().set(HttpHeaderNames.ACCESS_CONTROL_MAX_AGE, 86400);
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+
     }
 
     @Override
@@ -260,13 +251,15 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
 
     public final void sendMessage(String sid, ByteBuf content) {
-        log.info("OUT {}", content.toString(CharsetUtil.UTF_8));
+        if (log.isTraceEnabled()) {
+            log.trace("OUT {}", content.toString(CharsetUtil.UTF_8));
+        }
         Queue<ByteBuf> queue = OUTPUT_PACKETS.get(sid);
         queue.offer(content);
         wakeupPendingGet(sid, "*");
     }
 
-    private static class PendingRequest {
+    public static class PendingRequest {
         private final ChannelHandlerContext ctx;
         // 异步响应 Promise
         private final ChannelPromise promise;
