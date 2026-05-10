@@ -40,15 +40,6 @@ public final class EngineIOPacket<T> {
         return data;
     }
 
-    /**
-     * 获取数据包类型
-     *
-     * @return 数据包类型枚举值
-     */
-    public Type getType() {
-        return type;
-    }
-
     @Override
     public String toString() {
         String data;
@@ -58,6 +49,15 @@ public final class EngineIOPacket<T> {
             data = Optional.ofNullable(this.data).map(Object::toString).orElse("");
         }
         return String.format("%d%s", this.type.getCode(), data);
+    }
+
+    /**
+     * 获取数据包类型
+     *
+     * @return 数据包类型枚举值
+     */
+    public Type getType() {
+        return type;
     }
 
     /**
