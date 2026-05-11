@@ -1,5 +1,7 @@
 package com.ccl.socketio.core.listener;
 
+import com.ccl.socketio.core.namespace.SocketIOClient;
+
 /**
  * Socket.IO 客户端监听器注册接口
  *

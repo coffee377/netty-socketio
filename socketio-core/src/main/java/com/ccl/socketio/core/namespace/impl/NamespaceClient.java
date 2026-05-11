@@ -28,7 +28,7 @@ public class NamespaceClient implements SocketIOClient {
      * @param namespace 所属命名空间
      * @param sid       会话 ID
      */
-    public NamespaceClient(SocketIONamespace namespace,String sid) {
+    public NamespaceClient(SocketIONamespace namespace, String sid) {
         this.namespace = namespace;
         this.sid = sid;
         namespace.addClient(this);

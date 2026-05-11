@@ -49,8 +49,6 @@ public class Namespace implements SocketIONamespace {
         return name;
     }
 
-
-
     @Override
     public SocketIOClient getClient(String sid) {
         return allClients.get(sid);
@@ -80,115 +78,51 @@ public class Namespace implements SocketIONamespace {
 
     @Override
     public BroadcastOperations getBroadcastOperations() {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public BroadcastOperations getRoomOperations(String room) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public BroadcastOperations getRoomOperations(String... rooms) {
-        return null;
-    }
-
-    @Override
-    public void addConnectListener(ConnectListener listener) {
-
-    }
-
-    @Override
-    public void addDisconnectListener(DisconnectListener listener) {
-
-    }
-
-    @Override
-    public void addPingListener(PingListener listener) {
-
-    }
-
-    @Override
-    public void addPongListener(PongListener listener) {
-
-    }
-
-    @Override
-    public <T> void addEventListener(String eventName, Class<T> eventClass, DataListener<T> listener) {
-
+        throw new UnsupportedOperationException();
     }
 
     /**
-     * 注册事件处理器
+     * 向客户端发送事件
      *
      * @param eventName 事件名称
-     * @param handler   事件处理回调
-     */
-    public void on(String eventName, Consumer<SocketClient> handler) {
-        eventHandlers.computeIfAbsent(eventName, k -> new CopyOnWriteArrayList<>()).add(handler);
-    }
-
-    /**
-     * 注销事件处理器
-     *
-     * @param eventName 事件名称
-     * @param handler   待注销的事件处理回调
-     */
-    public void off(String eventName, Consumer<SocketClient> handler) {
-        CopyOnWriteArrayList<Consumer<SocketClient>> handlers = eventHandlers.get(eventName);
-        if (handlers != null) {
-            handlers.remove(handler);
-        }
-    }
-
-    /**
-     * 触发指定事件
-     *
-     * @param eventName 事件名称
-     * @param client    事件来源客户端
+     * @param client    目标客户端
      * @param args      事件参数
      */
-    public void emit(String eventName, SocketClient client, Object... args) {
-        CopyOnWriteArrayList<Consumer<SocketClient>> handlers = eventHandlers.get(eventName);
-        if (handlers != null) {
-            for (Consumer<SocketClient> handler : handlers) {
-                try {
-                    handler.accept(client);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    @Override
+    public void emit(String eventName, SocketIOClient client, Object... args) {
+
     }
 
     /**
-     * 注册 ACK 回调
+     * 注册客户端事件监听
      *
-     * @param ackId    ACK 确认 ID
-     * @param callback ACK 回调函数
+     * @param eventName 事件名称
+     * @param client    目标客户端
      */
-    public void registerAckCallback(int ackId, Consumer<Object> callback) {
-        ackCallbacks.put(String.valueOf(ackId), new CopyOnWriteArrayList<>());
+    @Override
+    public void on(String eventName, SocketIOClient client) {
+
     }
 
     /**
-     * 触发指定 ACK 的回调
+     * 移除客户端事件监听
      *
-     * @param ackId ACK 确认 ID
-     * @param data   ACK 数据
+     * @param eventName 事件名称
+     * @param client    目标客户端
      */
-    public void triggerAck(Long ackId, Object data) {
-        String key = String.valueOf(ackId);
-        CopyOnWriteArrayList<Consumer<SocketClient>> callbacks = ackCallbacks.remove(key);
-        if (callbacks != null) {
-            for (Consumer<SocketClient> cb : callbacks) {
-                try {
-                    cb.accept(null);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    @Override
+    public void off(String eventName, SocketIOClient client) {
+
     }
 
     /**

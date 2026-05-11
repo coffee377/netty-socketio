@@ -3,6 +3,8 @@ package com.ccl.socketio.core.protocol;
 import com.ccl.socketio.core.protocol.data.Event;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_ACK;
@@ -49,6 +51,8 @@ public class SocketPacket<T> {
      */
     private final Long ackId;
 
+    private final String eventName;
+
     /**
      * 数据包负载
      */
@@ -69,6 +73,7 @@ public class SocketPacket<T> {
         this.attachmentsCount = builder.attachmentsCount;
         this.namespace = builder.namespace;
         this.ackId = builder.ackId;
+        this.eventName = builder.eventName;
         this.data = builder.data;
         this.attachments = new ArrayList<>();
         this.rawSource = builder.rawSource;
@@ -146,26 +151,10 @@ public class SocketPacket<T> {
     /**
      * 获取事件名称
      *
-     * <p>从数据包负载中提取事件名称，支持以下数据格式：
-     * <ul>
-     *   <li>{@link Event} 对象：返回 {@link Event#getName()}</li>
-     *   <li>{@link List} 对象：返回列表第一个元素（Socket.IO 协议约定）</li>
-     *   <li>其他类型或 null：返回 null</li>
-     * </ul>
-     *
-     * @return 事件名称字符串，无法提取时返回 null
+     * @return 事件名称，非事件类型数据包返回 null
      */
     public String getEventName() {
-        if (data instanceof Event) {
-            return ((Event) data).getName();
-        }
-        if (data instanceof List) {
-            List<?> list = (List<?>) data;
-            if (!list.isEmpty() && list.get(0) instanceof String) {
-                return (String) list.get(0);
-            }
-        }
-        return null;
+        return eventName;
     }
 
     /**
@@ -305,6 +294,7 @@ public class SocketPacket<T> {
         private int attachmentsCount;
         private String namespace;
         private Long ackId;
+        private String eventName;
         private D data;
         private String rawSource;
 
@@ -353,6 +343,11 @@ public class SocketPacket<T> {
          */
         public Builder<D> ackId(long ackId) {
             this.ackId = ackId;
+            return this;
+        }
+
+        public Builder<D> event(String name) {
+            this.eventName = name;
             return this;
         }
 

@@ -4,6 +4,11 @@ import com.ccl.engineio.core.codec.impl.JacksonCodec;
 import com.ccl.engineio.core.codec.Codec;
 import com.ccl.socketio.core.codec.SocketDecoder;
 import com.ccl.socketio.core.protocol.SocketPacket;
+import com.ccl.socketio.core.protocol.data.Event;
+
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Socket.IO V5 协议解码器实现
@@ -51,11 +56,22 @@ public class SocketIODecoderV5 implements SocketDecoder {
         this(new JacksonCodec());
     }
 
+    /**
+     * 判断是否支持指定协议版本
+     *
+     * @param protocolVersion 协议版本号
+     * @return 版本号为 5 时返回 true
+     */
     @Override
     public boolean isSupport(int protocolVersion) {
         return protocolVersion == 5;
     }
 
+    /**
+     * 获取字符串编解码器
+     *
+     * @return 字符串编解码器实例
+     */
     @Override
     public Codec getStringCodec() {
         return stringCodec;
@@ -131,8 +147,7 @@ public class SocketIODecoderV5 implements SocketDecoder {
                     if (i + 1 == length) break;
                 }
                 try {
-                    long l = Long.parseLong(id.toString());
-                    builder.ackId(l);
+                    builder.ackId(Long.parseLong(id.toString()));
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException("invalid payload");
                 }
@@ -143,8 +158,23 @@ public class SocketIODecoderV5 implements SocketDecoder {
             String json = raw.substring(i + 1);
             Codec codec = getStringCodec();
             if (codec != null) {
-                T data = getStringCodec().deserialize(json, clazz);
-                builder.data(data);
+                T data = codec.deserialize(json, clazz);
+                if (data instanceof Event) {
+                    Event event = (Event) data;
+                    builder.event(event.getName());
+                    builder.data(event.getArgs());
+                } else if (data instanceof Collection) {
+                    Collection<?> collection = (Collection<?>) data;
+                    List<?> list = new ArrayList<>(collection);
+
+                    if (!list.isEmpty() && list.get(0) instanceof String) {
+                        builder.event((String) list.get(0));
+                        list.remove(0);
+                    }
+                    builder.data(list);
+                } else {
+                    builder.data(data);
+                }
             }
         }
 

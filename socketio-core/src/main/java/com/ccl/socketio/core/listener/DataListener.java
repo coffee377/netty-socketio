@@ -1,5 +1,6 @@
 package com.ccl.socketio.core.listener;
 
+import com.ccl.socketio.core.ack.AckRequest;
 import com.ccl.socketio.core.namespace.SocketIOClient;
 
 /**
@@ -18,9 +19,9 @@ public interface DataListener<T> {
      *
      * @param client    事件来源客户端
      * @param data      事件数据
-     * @param AckRequest ACK 确认请求对象
+     * @param ackRequest ACK 确认请求对象
      * @throws Exception 处理数据时可能抛出的异常
      */
-    void onData(SocketIOClient client, T data, Object AckRequest) throws Exception;
+    void onData(SocketIOClient client, T data, AckRequest AckRequest) throws Exception;
 
 }

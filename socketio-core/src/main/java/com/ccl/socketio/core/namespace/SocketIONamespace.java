@@ -1,6 +1,5 @@
 package com.ccl.socketio.core.namespace;
 
-import com.ccl.socketio.core.listener.ClientListeners;
 import com.ccl.socketio.core.operations.BroadcastOperations;
 
 import java.util.Collection;
@@ -13,7 +12,7 @@ import java.util.Collection;
  * @author coffee377
  * @since 4.0.0-alpha.0
  */
-public interface SocketIONamespace extends ClientListeners {
+public interface SocketIONamespace {
 
     /**
      * 获取命名空间名称
@@ -74,5 +73,31 @@ public interface SocketIONamespace extends ClientListeners {
      * @return 广播操作实例
      */
     BroadcastOperations getRoomOperations(String... rooms);
+
+
+    /**
+     * 注册客户端事件监听
+     *
+     * @param eventName 事件名称
+     * @param client    目标客户端
+     */
+    void on(String eventName, SocketIOClient client);
+
+    /**
+     * 移除客户端事件监听
+     *
+     * @param eventName 事件名称
+     * @param client    目标客户端
+     */
+    void off(String eventName, SocketIOClient client);
+
+    /**
+     * 向客户端发送事件
+     *
+     * @param eventName 事件名称
+     * @param client    目标客户端
+     * @param args      事件参数
+     */
+    void emit(String eventName, SocketIOClient client, Object... args);
 
 }

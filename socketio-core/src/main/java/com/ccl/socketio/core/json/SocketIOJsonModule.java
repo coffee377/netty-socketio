@@ -21,9 +21,16 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
  */
 public class SocketIOJsonModule extends SimpleModule {
 
+    /**
+     * 创建 Socket.IO JSON 序列化模块
+     *
+     * <p>注册 Event 序列化器、byte[] 序列化器和 Event 反序列化器。
+     */
     public SocketIOJsonModule() {
         addSerializer(Event.class, new EventSerializer());
         addSerializer(byte[].class, new ByteArraySerializer());
+
+        addDeserializer(Event.class, new EventDeserializer());
     }
 
 }
