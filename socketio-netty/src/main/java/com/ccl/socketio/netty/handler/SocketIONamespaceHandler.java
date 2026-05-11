@@ -3,7 +3,6 @@ package com.ccl.socketio.netty.handler;
 import com.ccl.engineio.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.namespace.SocketIOClient;
 import com.ccl.socketio.core.namespace.SocketIONamespace;
-import com.ccl.socketio.core.namespace.impl.Namespace;
 import com.ccl.socketio.core.namespace.NamespaceManager;
 import com.ccl.socketio.core.namespace.impl.NamespaceClient;
 import com.ccl.socketio.core.protocol.SocketPacket;
@@ -12,8 +11,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
 import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Socket.IO 命名空间处理器
@@ -30,10 +27,29 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
 
     private final NamespaceManager namespaceManager;
 
+    /**
+     * 创建命名空间处理器
+     *
+     * @param namespaceManager 命名空间管理器
+     */
     public SocketIONamespaceHandler(NamespaceManager namespaceManager) {
         this.namespaceManager = namespaceManager;
     }
 
+    /**
+     * 处理 Socket.IO 协议数据包
+     *
+     * <p>根据数据包类型分发处理：
+     * <ul>
+     *   <li>CONNECT — 处理客户端命名空间连接</li>
+     *   <li>DISCONNECT — 处理客户端断开连接</li>
+     *   <li>其他类型 — 透传到下游 ChannelHandler</li>
+     * </ul>
+     *
+     * @param ctx    Channel 处理器上下文
+     * @param packet Socket.IO 数据包
+     * @throws Exception 处理过程中的异常
+     */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, SocketPacket<?> packet) throws Exception {
         String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
@@ -51,27 +67,50 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
             case DISCONNECT:
                 handleDisconnect(ctx, namespace, sessionId);
                 break;
+            case EVENT:
+            case BINARY_EVENT:
+            case ACK:
+            case BINARY_ACK:
+            case ERROR:
             default:
                 ctx.fireChannelRead(packet);
                 break;
         }
     }
 
+    /**
+     * 处理客户端连接命名空间
+     *
+     * <p>创建客户端实例添加到命名空间，发送 CONNECT 确认包。
+     *
+     * @param ctx       Channel 处理器上下文
+     * @param namespace 目标命名空间
+     * @param sessionId 客户端会话 ID
+     */
     private void handleConnect(ChannelHandlerContext ctx, SocketIONamespace namespace, String sessionId) {
         NamespaceClient client = new NamespaceClient(namespace, sessionId);
-        namespace.addClient(client);
-//        namespace.emit("connect", client);
+        namespace.emit("connect", client);
 
         SocketPacket<?> packet = SocketPacket.builder()
                 .type(SocketPacket.Type.CONNECT)
                 .namespace(namespace.getName())
-                .data(new HashMap<String, Object>() {{
+                .data(new HashMap<String, String>() {{
                     put("sid", sessionId);
                 }})
                 .build();
+
         ctx.writeAndFlush(packet);
     }
 
+    /**
+     * 处理客户端断开连接
+     *
+     * <p>从命名空间中移除客户端并触发断开事件。
+     *
+     * @param ctx       Channel 处理器上下文
+     * @param namespace 所属命名空间
+     * @param sessionId 客户端会话 ID
+     */
     private void handleDisconnect(ChannelHandlerContext ctx, SocketIONamespace namespace, String sessionId) {
         SocketIOClient client = namespace.removeClient(sessionId);
         if (client != null) {
@@ -79,6 +118,12 @@ public class SocketIONamespaceHandler extends SimpleChannelInboundHandler<Socket
         }
     }
 
+    /**
+     * Channel 断开时清理客户端会话
+     *
+     * @param ctx Channel 处理器上下文
+     * @throws Exception 清理过程中的异常
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String sid = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
