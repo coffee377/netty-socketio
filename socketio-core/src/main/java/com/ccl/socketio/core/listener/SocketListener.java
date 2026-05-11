@@ -1,22 +1,20 @@
-package com.ccl.socketio.core.event;
+package com.ccl.socketio.core.listener;
 
-import com.ccl.socketio.core.listener.DataListener;
 import com.ccl.socketio.core.namespace.SocketIOClient;
-import com.ccl.socketio.core.namespace.impl.Namespace;
+import com.ccl.socketio.core.protocol.SocketPacket;
 import com.ccl.socketio.core.protocol.data.Event;
 
 /**
- * Socket.IO 事件处理器接口
+ * Socket.IO 数据包监听器
  *
- * <p>定义 Socket.IO 客户端的事件回调方法，
- * 用户实现此接口来处理连接、断开、事件和错误</p>
+ * <p>当从 Engine.IO 层接收到数据包时回调此接口，
+ * 允许对入站数据包进行转换或增强处理。
+ * </p>
  *
  * @author coffee377
- * @see Namespace.SocketClient
- * @see Event
  * @since 4.0.0-alpha.0
  */
-public interface EventHandler {
+public interface PacketListener extends ConnectListener, DisconnectListener {
 
     /**
      * 连接建立时回调
