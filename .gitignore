@@ -21,3 +21,4 @@ logs
 .opencode/*
 !.opencode/plans/
 !.opencode/skills/
+.ai

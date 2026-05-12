@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":socketio-server"))
+    implementation(libs.socket.io.netty.server)
     implementation(project(":netty-socketio-core"))
     implementation(libs.logback.classic)
 

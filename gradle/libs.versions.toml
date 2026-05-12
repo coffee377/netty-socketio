@@ -34,7 +34,21 @@ micrometerBom = "1.16.1"
 hll = "1.6.0"
 lz4 = "1.10.3"
 
+engineio = "4.0.0"
+socket = "5.0.0"
+
 [libraries]
+# Engine IO
+engine-io-api = { group = "com.ccl.io.engine", name = "engine-api", version.ref = "engineio" }
+engine-io-core = { group = "com.ccl.io.engine", name = "engine-core", version.ref = "engineio" }
+engine-io-netty = { group = "com.ccl.io.engine", name = "engine-netty", version.ref = "engineio" }
+
+# Socket IO
+socket-io-api = { module = "com.ccl.io.socket:socket-api", version.ref = "socket" }
+socket-io-core = { module = "com.ccl.io.socket:socket-core", version.ref = "socket" }
+socket-io-netty = { module = "com.ccl.io.socket:socket-netty", version.ref = "socket" }
+socket-io-netty-server = { module = "com.ccl.io.socket:socket-netty-server", version.ref = "socket" }
+
 # Netty
 netty-bom = { group = "io.netty", name = "netty-bom", version.ref = "netty" }
 netty-buffer = { group = "io.netty", name = "netty-buffer", version.ref = "netty" }
