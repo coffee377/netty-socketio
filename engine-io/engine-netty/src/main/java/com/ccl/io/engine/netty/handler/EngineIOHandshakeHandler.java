@@ -1,5 +1,8 @@
-package com.ccl.engineio.netty.handler;
+package com.ccl.io.engine.netty.handler;
 
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.EngineIOClient;
+import com.ccl.io.engine.HandshakeData;
 import com.ccl.io.engine.core.entity.ClientContext;
 import com.ccl.io.engine.core.entity.OpenData;
 import com.ccl.io.engine.core.session.SessionManager;
@@ -15,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Engine.IO 握手协议处理器
@@ -78,6 +82,7 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
         Transport transportType = Transport.POLLING;
 
         ClientContext clientContext = sessionManager.createSession(transportType);
+        EngineClient<?> client = getOrCreateClient(request, ctx.channel());
         InetSocketAddress clientAddress = (InetSocketAddress) ctx.channel().remoteAddress();
         if (clientAddress != null) {
             clientContext.setRemoteAddress(clientAddress.getAddress().toString());
@@ -96,9 +101,27 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
         // builder.upgrade(TransportType.WEBSOCKET);
 
         OpenData openData = builder.build();
-        EngineIOPacket<OpenData> packet = EngineIOPacket.builder().type(EngineIOPacket.Type.OPEN).data(openData).build();
+        EngineIOPacket<OpenData> packet = EngineIOPacket.builder()
+                .type(EngineIOPacket.Type.OPEN)
+                .data(openData).build();
         ctx.writeAndFlush(packet);
 
+    }
+
+    private EngineClient<HandshakeData> getOrCreateClient(FullHttpRequest request, Channel channel) {
+        String sid = UUID.randomUUID().toString().replace("-", "");
+//        EngineClient<HandshakeData> engineClient = clients.computeIfAbsent(sid, key ->
+//                EngineIOClient.builder()
+//                        .sessionId(key)
+//                        .engineIOVersion(4)
+//                        .transport(Transport.POLLING)
+//                        .connected(channel.isOpen())
+////                        .handshakeData(handshakeData)
+//                        .build()
+//        );
+//        log.debug("Create client for handshake: {}", engineClient);
+//        return engineClient;
+        return null;
     }
 
 }

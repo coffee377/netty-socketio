@@ -8,16 +8,16 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class EngineIOClient<T> implements EngineClient<T> {
+public class EngineIOClient implements EngineClient<HandshakeData> {
 
     private final int engineIOVersion;
     private final String sessionId;
     private final Transport transport;
-    private final T handshakeData;
+    private final HandshakeData handshakeData;
     private final AtomicBoolean connected;
     private final Queue<EngineIOPacket<?>> packets;
 
-    private EngineIOClient(Builder<T> builder) {
+    private EngineIOClient(Builder builder) {
         this.connected = builder.connected;
         this.engineIOVersion = builder.engineIOVersion;
         this.sessionId = builder.sessionId;
@@ -26,8 +26,8 @@ public class EngineIOClient<T> implements EngineClient<T> {
         this.packets = new ConcurrentLinkedQueue<>();
     }
 
-    public static <D> Builder<D> builder() {
-        return new Builder<>();
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -51,7 +51,7 @@ public class EngineIOClient<T> implements EngineClient<T> {
     }
 
     @Override
-    public T getHandshakeData() {
+    public HandshakeData getHandshakeData() {
         return handshakeData;
     }
 
@@ -75,43 +75,43 @@ public class EngineIOClient<T> implements EngineClient<T> {
         throw new UnsupportedOperationException();
     }
 
-    public static class Builder<T> {
-        private int engineIOVersion;
+    public static class Builder {
         private String sessionId;
+        private int engineIOVersion;
         private Transport transport;
-        private T handshakeData;
+        private HandshakeData handshakeData;
         private final AtomicBoolean connected = new AtomicBoolean(false);
 
-        public Builder<T> engineIOVersion(int engineIOVersion) {
+        public Builder engineIOVersion(int engineIOVersion) {
             this.engineIOVersion = engineIOVersion;
             return this;
         }
 
-        public Builder<T> sessionId(String sessionId) {
+        public Builder sessionId(String sessionId) {
             this.sessionId = sessionId;
             return this;
         }
 
-        public Builder<T> transport(Transport transport) {
+        public Builder transport(Transport transport) {
             this.transport = transport;
             return this;
         }
 
-        public Builder<T> handshakeData(T handshakeData) {
+        public Builder handshakeData(HandshakeData handshakeData) {
             this.handshakeData = handshakeData;
             return this;
         }
 
-        public Builder<T> connected(boolean connected) {
+        public Builder connected(boolean connected) {
             this.connected.set(connected);
             return this;
         }
 
-        public EngineClient<T> build() {
+        public EngineClient<HandshakeData> build() {
             if (engineIOVersion < 1) {
                 engineIOVersion = 4;
             }
-            return new EngineIOClient<>(this);
+            return new EngineIOClient(this);
         }
 
     }

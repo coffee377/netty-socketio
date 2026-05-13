@@ -5,6 +5,8 @@ import com.ccl.io.engine.codec.EngineIOEncoder;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.EngineIOVersion;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -29,7 +31,6 @@ import java.util.List;
  * @since 4.0.0-alpha.0
  */
 public class EngineIOEncoderV4 implements EngineIOEncoder {
-
     /**
      * 编码单个数据包
      *
@@ -42,11 +43,11 @@ public class EngineIOEncoderV4 implements EngineIOEncoder {
      * </ul>
      *
      * @param packet         数据包
-     * @param supportsBinary 是否支持二进制（true: 直接传输二进制, false: Base64 编码）
+     * @param supportBinary 是否支持二进制（true: 直接传输二进制, false: Base64 编码）
      * @return 编码后的字节数组
      */
     @Override
-    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportsBinary) {
+    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary) {
         byte typeByte = packet.getType().getByte();
         byte[] typeBytes = new byte[]{typeByte};
         Object data = packet.getData();
@@ -58,7 +59,7 @@ public class EngineIOEncoderV4 implements EngineIOEncoder {
             System.arraycopy(payloadBytes, 0, result, typeBytes.length, payloadBytes.length);
             return result;
         } else if (data instanceof byte[]) {
-            if (supportsBinary) {
+            if (supportBinary) {
                 byte[] payloadBytes = (byte[]) data;
                 result = new byte[typeBytes.length + payloadBytes.length];
                 System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
@@ -94,34 +95,29 @@ public class EngineIOEncoderV4 implements EngineIOEncoder {
      * 连接各数据包。先计算总大小以分配精确的 ByteBuffer，再逐一编码写入</p>
      *
      * @param packets        数据包列表
-     * @param supportsBinary 是否支持二进制（true: 直接传输二进制, false: Base64 编码）
+     * @param supportBinary 是否支持二进制（true: 直接传输二进制, false: Base64 编码）
      * @return 编码后的字节缓冲区，空列表返回空缓冲区
      */
     @Override
-    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportsBinary) {
+    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary) {
         if (packets == null || packets.isEmpty()) {
             return ByteBuffer.allocate(0);
         }
 
-        int totalSize = 0;
-        for (int i = 0; i < packets.size(); i++) {
-            byte[] encoded = encodePacket(packets.get(i), supportsBinary);
-            totalSize += encoded.length;
-            if (i < packets.size() - 1) {
-                totalSize += 1;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            for (int i = 0; i < packets.size(); i++) {
+                byte[] data = encodePacket(packets.get(i), supportBinary);
+                out.write(data);
+                if (i < packets.size() - 1) {
+                    out.write(V4_RECORD_SEPARATOR);
+                }
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
-        ByteBuffer buffer = ByteBuffer.allocate(totalSize);
-        for (int i = 0; i < packets.size(); i++) {
-            byte[] encoded = encodePacket(packets.get(i), supportsBinary);
-            buffer.put(encoded);
-            if (i < packets.size() - 1) {
-                buffer.put(V4_RECORD_SEPARATOR);
-            }
-        }
-        buffer.flip();
-        return buffer;
+        return ByteBuffer.wrap(out.toByteArray());
     }
 
     /**

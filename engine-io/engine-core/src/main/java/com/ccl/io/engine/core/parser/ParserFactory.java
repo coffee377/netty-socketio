@@ -1,58 +1,20 @@
 package com.ccl.io.engine.core.parser;
 
 import com.ccl.io.engine.Parser;
-import com.ccl.io.engine.protocol.EngineIOVersion;
 
 /**
  * Engine.IO 解析器工厂
  *
- * <p>根据协议版本获取对应的解析器实例</p>
+ * <p>根据协议版本获取对应的解析器实例，支持 SPI 自动发现机制</p>
  *
  * @author coffee377
+ * @see ParserDelegate
  */
 public final class ParserFactory {
 
-    private static final Parser V4_PARSER = new ParserV4();
-
-    private ParserFactory() {
-    }
-
     /**
-     * 根据协议版本获取解析器
-     *
-     * @param version Engine.IO 协议版本
-     * @return 对应版本的解析器实例
+     * 默认委托解析器（单例）
      */
-    public static Parser getParser(EngineIOVersion version) {
-        if (version == null || version == EngineIOVersion.UNKNOWN) {
-            return V4_PARSER;
-        }
-        switch (version) {
-            case V2:
-            case V3:
-            case V4:
-                return V4_PARSER;
-            default:
-                return V4_PARSER;
-        }
-    }
+    public static final Parser INSTANCE = new ParserDelegate();
 
-    /**
-     * 根据版本号获取解析器
-     *
-     * @param version 版本号（如 "3"、"4"）
-     * @return 对应版本的解析器实例
-     */
-    public static Parser getParser(String version) {
-        return getParser(EngineIOVersion.fromValue(version));
-    }
-
-    /**
-     * 获取默认解析器（V4）
-     *
-     * @return V4 协议解析器实例
-     */
-    public static Parser getDefaultParser() {
-        return V4_PARSER;
-    }
 }

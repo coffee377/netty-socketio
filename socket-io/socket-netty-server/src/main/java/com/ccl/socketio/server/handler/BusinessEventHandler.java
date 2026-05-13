@@ -1,5 +1,6 @@
 package com.ccl.socketio.server.handler;
 
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.protocol.SocketPacket;
 import com.ccl.socketio.server.listener.SocketIOListener;
 import io.netty.channel.*;
@@ -34,7 +35,7 @@ public class BusinessEventHandler extends SimpleChannelInboundHandler<SocketPack
         }
 
         String sessionId = ctx.channel().attr(
-                com.ccl.engineio.netty.handler.ChannelAttributes.SESSION_ID).get();
+                ChannelAttributes.SESSION_ID).get();
         String namespace = packet.getNamespace();
         if (namespace == null || namespace.isEmpty()) {
             namespace = "/";

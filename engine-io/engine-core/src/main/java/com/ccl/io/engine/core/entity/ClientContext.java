@@ -10,8 +10,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>持有单个客户端连接的状态信息，包括会话 ID、传输方式、连接状态等</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
+ * @deprecated use {@link com.ccl.io.engine.EngineClient} instead
+ *
  */
+@Deprecated
 public class ClientContext {
 
     /**

@@ -1,12 +1,15 @@
 package com.ccl.io.engine.codec;
 
 import com.ccl.io.engine.exception.DeserializationException;
+import com.ccl.io.engine.exception.NoImplementationException;
 import com.ccl.io.engine.exception.SerializationException;
 
 import java.io.Reader;
 import java.io.Writer;
 
 public interface Codec {
+
+    Codec NOOP = new NoOpCodec();
 
     /**
      * 从 Reader 读取并反序列化对象
@@ -18,7 +21,7 @@ public interface Codec {
      * @throws DeserializationException 当读取或反序列化失败时
      */
     default <T> T readValue(Reader reader, Class<T> clazz) throws DeserializationException {
-        throw new SerializationException("Not implemented yet");
+        throw new NoImplementationException();
     }
 
     /**
@@ -29,7 +32,7 @@ public interface Codec {
      * @throws SerializationException 当序列化或写入失败时
      */
     default void writeValue(Writer writer, Object value) throws SerializationException {
-        throw new SerializationException("Not implemented yet");
+        throw new NoImplementationException();
     }
 
     /**

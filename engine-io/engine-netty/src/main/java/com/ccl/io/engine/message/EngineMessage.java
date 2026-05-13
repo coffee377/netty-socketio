@@ -1,4 +1,4 @@
-package com.ccl.engineio.netty;
+package com.ccl.io.engine.message;
 
 import com.ccl.io.engine.core.entity.ClientContext;
 import com.ccl.io.engine.protocol.Transport;
@@ -13,7 +13,7 @@ import io.netty.util.ReferenceCounted;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EngineMessage implements ReferenceCounted {
 

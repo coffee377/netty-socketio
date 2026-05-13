@@ -1,6 +1,6 @@
 package com.ccl.socketio.netty.handler;
 
-import com.ccl.engineio.netty.handler.ChannelAttributes;
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.socketio.core.namespace.SocketIOClient;
 import com.ccl.socketio.core.namespace.SocketIONamespace;
 import com.ccl.socketio.core.namespace.NamespaceManager;

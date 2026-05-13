@@ -32,28 +32,12 @@ import java.util.List;
 public class EngineIODecoderV4 implements EngineIODecoder {
 
     /**
-     * 检查是否支持指定协议版本
-     *
-     * @param protocolVersion 协议版本号
-     * @return 仅当协议版本为 V4 时返回 true
-     */
-    @Override
-    public boolean isSupport(int protocolVersion) {
-        return EngineIOVersion.V4.getValue() == protocolVersion;
-    }
-
-    @Override
-    public Codec getCodec() {
-        return new JacksonCodec();
-    }
-
-    /**
      * 解码单个数据包
      *
      * <p>支持 String 和 byte[] 两种输入类型，
      * String 会转换为 UTF-8 字节数组进行处理</p>
      *
-     * @param data     原始数据（字符串或字节数组）
+     * @param data 原始数据（字符串或字节数组）
      * @return 解码后的数据包，data 为 null 时返回 null
      * @throws IllegalArgumentException 当输入类型不支持时
      */
@@ -75,7 +59,7 @@ public class EngineIODecoderV4 implements EngineIODecoder {
      * <p>先将原始数据转换为字节数组，使用 V4 协议记录分隔符（0x1E）
      * 分割各数据包，然后逐一解码</p>
      *
-     * @param payload  原始数据（字符串或字节数组）
+     * @param payload 原始数据（字符串或字节数组）
      * @return 解码后的数据包列表，空数据返回空列表
      * @throws IllegalArgumentException 当输入类型不支持时
      */
@@ -106,6 +90,22 @@ public class EngineIODecoderV4 implements EngineIODecoder {
     }
 
     /**
+     * 检查是否支持指定协议版本
+     *
+     * @param protocolVersion 协议版本号
+     * @return 仅当协议版本为 V4 时返回 true
+     */
+    @Override
+    public boolean isSupport(int protocolVersion) {
+        return EngineIOVersion.V4.getValue() == protocolVersion;
+    }
+
+    @Override
+    public Codec getCodec() {
+        return new JacksonCodec();
+    }
+
+    /**
      * 将字节数组解析为 {@link EngineIOPacket} 数据包
      *
      * <p>解析规则：
@@ -118,7 +118,7 @@ public class EngineIODecoderV4 implements EngineIODecoder {
      * @param byteData 原始字节数据
      * @return 解析后的数据包实例
      */
-    public EngineIOPacket<?> fromBytes(byte[] byteData) {
+    protected EngineIOPacket<?> fromBytes(byte[] byteData) {
         EngineIOPacket.Builder<?> builder = EngineIOPacket.builder();
         if (byteData.length == 0) {
             return builder.build();

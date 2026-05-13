@@ -1,6 +1,7 @@
 package com.ccl.io.engine.core.parser;
 
 import com.ccl.io.engine.Parser;
+import com.ccl.io.engine.protocol.EngineIOVersion;
 import com.ccl.io.engine.codec.Codec;
 import com.ccl.io.engine.codec.EngineIODecoder;
 import com.ccl.io.engine.codec.EngineIOEncoder;
@@ -8,9 +9,9 @@ import com.ccl.io.engine.core.codec.impl.EngineIODecoderV4;
 import com.ccl.io.engine.core.codec.impl.EngineIOEncoderV4;
 import com.ccl.io.engine.core.codec.impl.JacksonCodec;
 import com.ccl.io.engine.protocol.EngineIOPacket;
-import com.ccl.io.engine.protocol.EngineIOVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -71,12 +72,12 @@ public class ParserV4 implements Parser {
      * </p>
      *
      * @param packet         待编码的数据包
-     * @param supportsBinary 是否支持二进制传输
+     * @param supportBinary 是否支持二进制传输
      * @return 编码后的字节数组
      */
     @Override
-    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportsBinary) {
-        return encoder.encodePacket(packet, supportsBinary);
+    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary) {
+        return encoder.encodePacket(packet, supportBinary);
     }
 
     /**
@@ -84,19 +85,19 @@ public class ParserV4 implements Parser {
      * <p>多个数据包之间使用 V4_RECORD_SEPARATOR（0x1E）分隔</p>
      *
      * @param packets        数据包列表
-     * @param supportsBinary 是否支持二进制传输
+     * @param supportBinary 是否支持二进制传输
      * @return 编码后的 ByteBuffer
      */
     @Override
-    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportsBinary) {
-        return encoder.encodePayload(packets, supportsBinary);
+    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary) {
+        return encoder.encodePayload(packets, supportBinary);
     }
 
     /**
      * 解码单个数据包
      * <p>支持从 String 或 byte[] 输入解码，底层委托给 EngineIOPacket.fromBytes</p>
      *
-     * @param data     待解码的数据（String 或 byte[]）
+     * @param data 待解码的数据（String 或 byte[]）
      * @return 解码后的数据包，输入为 null 时返回 null
      * @throws IllegalArgumentException 数据类型不支持时抛出
      */
@@ -109,7 +110,7 @@ public class ParserV4 implements Parser {
      * 解码 payload 中的多个数据包
      * <p>使用 V4_RECORD_SEPARATOR（0x1E）作为分隔符拆分数据</p>
      *
-     * @param data     待解码的 payload 数据（String 或 byte[]）
+     * @param data 待解码的 payload 数据（String 或 byte[]）
      * @return 解码后的数据包列表
      * @throws IllegalArgumentException 数据类型不支持时抛出
      */
@@ -127,11 +128,6 @@ public class ParserV4 implements Parser {
     @Override
     public boolean isSupport(int protocolVersion) {
         return EngineIOVersion.V4.getValue() == protocolVersion;
-    }
-
-    @Override
-    public Codec getCodec() {
-        return new JacksonCodec();
     }
 
 }

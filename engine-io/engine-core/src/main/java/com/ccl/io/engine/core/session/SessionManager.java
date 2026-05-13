@@ -1,9 +1,14 @@
 package com.ccl.io.engine.core.session;
 
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.EngineIOClient;
+import com.ccl.io.engine.HandshakeData;
 import com.ccl.io.engine.core.entity.ClientContext;
 import com.ccl.io.engine.exception.SessionNotFoundException;
 import com.ccl.io.engine.protocol.Transport;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,9 +24,11 @@ import java.util.concurrent.TimeUnit;
  */
 public class SessionManager {
 
+    private final static Logger log = LoggerFactory.getLogger(SessionManager.class);
     private static final SessionManager INSTANCE = new SessionManager();
 
     private final ConcurrentHashMap<String, ClientContext> sessions = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, EngineClient<HandshakeData>> clients = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, ScheduledFuture<?>> sessionTimeoutTasks = new ConcurrentHashMap<>();
 
@@ -59,6 +66,7 @@ public class SessionManager {
      * @param transportType 传输类型（polling 或 websocket）
      * @return 客户端上下文对象
      */
+    @Deprecated
     public ClientContext createSession(Transport transportType) {
         String sid = UUID.randomUUID().toString().replace("-", "");
         ClientContext clientContext = new ClientContext(sid, transportType);
@@ -79,6 +87,10 @@ public class SessionManager {
             throw new SessionNotFoundException(sessionId);
         }
         return context;
+    }
+
+    public EngineClient<?> getClient(@NotNull String sessionId) {
+        return clients.get(sessionId);
     }
 
     /**
@@ -192,4 +204,5 @@ public class SessionManager {
         sessionTimeoutTasks.values().forEach(task -> task.cancel(false));
         sessionTimeoutTasks.clear();
     }
+
 }

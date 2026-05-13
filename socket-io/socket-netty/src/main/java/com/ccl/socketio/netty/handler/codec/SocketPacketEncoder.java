@@ -2,8 +2,8 @@ package com.ccl.socketio.netty.handler.codec;
 
 import com.ccl.io.engine.codec.EngineIOEncoder;
 import com.ccl.io.engine.core.codec.impl.EngineIOEncoderV4;
-import com.ccl.engineio.netty.handler.ChannelAttributes;
-import com.ccl.engineio.netty.transport.PollingTransport;
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
+import com.ccl.io.engine.netty.transport.PollingTransport;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.socketio.core.codec.SocketEncoder;
 import com.ccl.socketio.core.codec.impl.SocketIOEncoderV5;

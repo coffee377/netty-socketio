@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>定义 Engine.IO 客户端的会话状态访问方法，包括协议版本、会话 ID、
  * 传输层类型、握手数据及连接状态等。所有 Engine.IO 客户端实现必须实现此接口</p>
  *
- * @param <T> 握手数据类型
  * @author coffee377
  * @since 4.0.0
  */

@@ -6,19 +6,19 @@ plugins {
 group = "com.ccl.io.engine"
 
 subprojects {
-    apply(plugin = "java-library")
-    apply(plugin = "maven-publish")
+    plugins.apply("java-library")
+    plugins.apply("maven-publish")
+
+    dependencies {
+        testImplementation(platform("org.junit:junit-bom:5.8.2"))
+        testImplementation("org.junit.jupiter:junit-jupiter")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    }
 
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(8))
         }
-    }
-
-    dependencies {
-//        testImplementation(platform("org.junit:junit-bom:6.0.0"))
-//        testImplementation("org.junit.jupiter:junit-jupiter")
-//        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     tasks {
@@ -39,10 +39,10 @@ subprojects {
             options.compilerArgs.addAll(
                 listOf(
                     "-Xlint:-options",
-                    //"-Xlint:unchecked",
-                    //"-Xlint:deprecation"
+                    "-Xlint:-unchecked",
                 )
             )
+            options.isDeprecation = false
             // options.release.set(8)
         }
 

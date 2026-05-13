@@ -1,12 +1,8 @@
-package com.ccl.engineio.netty.pipeline;
+package com.ccl.io.engine.netty.pipeline;
 
-import com.ccl.engineio.netty.handler.*;
-import com.ccl.engineio.netty.transport.PollingTransport;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpServerCodec;
 
 /**
  * Pipeline 工厂

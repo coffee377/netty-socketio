@@ -1,10 +1,10 @@
-package com.ccl.engineio.netty.transport;
+package com.ccl.io.engine.netty.transport;
 
 import com.ccl.io.engine.core.entity.ClientContext;
 import com.ccl.io.engine.core.session.SessionManager;
-import com.ccl.engineio.netty.EngineMessage;
-import com.ccl.engineio.netty.handler.ChannelAttributes;
-import com.ccl.engineio.netty.handler.CorsUtil;
+import com.ccl.io.engine.message.EngineMessage;
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
+import com.ccl.io.engine.netty.handler.CorsUtil;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.Transport;
 import io.netty.buffer.ByteBuf;

@@ -1,5 +1,7 @@
 package com.ccl.engineio.parser;
 
+import com.ccl.io.engine.Parser;
+import com.ccl.io.engine.core.parser.ParserFactory;
 import com.ccl.io.engine.core.parser.ParserV4;
 import com.ccl.io.engine.protocol.DataType;
 import com.ccl.io.engine.protocol.EngineIOPacket;
@@ -26,11 +28,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Engine.IO ParserV4 协议解析器测试")
 public class ParserV4Test {
 
-    private static final ParserV4 parser = ParserV4.getInstance();
+    private static final Parser parser = ParserV4.getInstance();
 
     @Nested
     @DisplayName("Packet Type Tests")
-    class PacketTypeTests {
+    public class PacketTypeTests {
 
         @Test
         @DisplayName("OPEN packet type should be 0")
@@ -77,7 +79,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("Encode Packet Tests")
-    class EncodePacketTests {
+    public class EncodePacketTests {
 
         @Test
         @DisplayName("Should encode MESSAGE packet with string payload")
@@ -146,7 +148,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("Decode Packet Tests")
-    class DecodePacketTests {
+    public class DecodePacketTests {
 
         @Test
         @DisplayName("Should decode MESSAGE packet with string payload")
@@ -236,7 +238,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("Payload Encoding Tests (HTTP Long-Polling)")
-    class PayloadEncodingTests {
+    public class PayloadEncodingTests {
 
         @Test
         @DisplayName("Should encode multiple packets in payload")
@@ -321,7 +323,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("Protocol Examples from Documentation")
-    class ProtocolExamplesTests {
+    public class ProtocolExamplesTests {
 
         @Test
         @DisplayName("WebSocket frame: 4hello (message packet)")
@@ -419,7 +421,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("EngineIOPacket Tests")
-    class EngineIOPacketTests {
+    public class EngineIOPacketTests {
 
         @Test
         @DisplayName("Should create packet with type and data")
@@ -462,7 +464,7 @@ public class ParserV4Test {
 
     @Nested
     @DisplayName("DataType Tests")
-    class DataTypeTests {
+    public class DataTypeTests {
 
         @Test
         @DisplayName("PLAINTEXT type value should be 0")

@@ -11,6 +11,8 @@ import com.ccl.io.engine.codec.EngineIOEncoder;
  * @author coffee377
  * @see <a href="https://socket.io/zh-CN/docs/v4/engine-io-protocol/">Engine.IO 协议文档</a>
  */
-public interface Parser extends EngineIOEncoder, EngineIODecoder, EngineIO {
+public interface Parser extends EngineIOEncoder, EngineIODecoder {
+
+    Parser NOOP = new NoOpParser();
 
 }

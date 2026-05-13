@@ -39,6 +39,8 @@ public interface EngineIO {
      *
      * @return 编解码器
      */
-    Codec getCodec();
+    default Codec getCodec() {
+        return Codec.NOOP;
+    }
 
 }
