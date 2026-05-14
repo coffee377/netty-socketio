@@ -13,4 +13,6 @@ public interface EngineClientStore<B> {
 
     void removeClient(@NotNull String sessionId);
 
+    int size();
+
 }
