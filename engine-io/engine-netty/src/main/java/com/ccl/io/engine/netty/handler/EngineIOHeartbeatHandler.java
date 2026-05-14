@@ -1,6 +1,5 @@
 package com.ccl.io.engine.netty.handler;
 
-import com.ccl.io.engine.core.session.SessionManager;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import io.netty.channel.*;
 import io.netty.handler.timeout.IdleState;
@@ -22,11 +21,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class EngineIOHeartbeatHandler extends IdleStateHandler {
 
-    private final SessionManager sessionManager;
-
     public EngineIOHeartbeatHandler(long pingInterval, long pingTimeout) {
         super(pingInterval, pingTimeout, 0, TimeUnit.MILLISECONDS);
-        this.sessionManager = SessionManager.getInstance();
     }
 
     /**
@@ -42,7 +38,7 @@ public class EngineIOHeartbeatHandler extends IdleStateHandler {
         if (evt.state() == IdleState.READER_IDLE) {
             String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
             if (sessionId != null) {
-                sessionManager.removeSession(sessionId);
+                // todo
             }
             ctx.close();
         } else if (evt.state() == IdleState.WRITER_IDLE) {

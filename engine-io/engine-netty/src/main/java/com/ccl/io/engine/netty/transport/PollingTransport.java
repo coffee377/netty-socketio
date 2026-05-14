@@ -1,7 +1,7 @@
 package com.ccl.io.engine.netty.transport;
 
-import com.ccl.io.engine.core.entity.ClientContext;
-import com.ccl.io.engine.core.session.SessionManager;
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.EngineIOClient;
 import com.ccl.io.engine.message.EngineMessage;
 import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.io.engine.netty.handler.CorsUtil;
@@ -125,7 +125,7 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         sendSuccessResponse(ctx, "ok", origin);
 
         // 2. 传递消息到下一个处理器
-        ClientContext client = SessionManager.getInstance().getSession(sessionId);
+        EngineClient client = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
         EngineMessage message = EngineMessage.builder().client(client)
                 .content(content).transport(Transport.POLLING).build();
         ctx.fireChannelRead(message);

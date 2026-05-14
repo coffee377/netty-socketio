@@ -1,6 +1,6 @@
 package com.ccl.io.engine.message;
 
-import com.ccl.io.engine.core.entity.ClientContext;
+import com.ccl.io.engine.EngineClient;
 import com.ccl.io.engine.protocol.Transport;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCounted;
@@ -17,7 +17,7 @@ import io.netty.util.ReferenceCounted;
  */
 public class EngineMessage implements ReferenceCounted {
 
-    private final ClientContext client;
+    private final EngineClient client;
     private final ByteBuf content;
     private final Transport transport;
 
@@ -26,7 +26,7 @@ public class EngineMessage implements ReferenceCounted {
      *
      * @return 客户端上下文信息
      */
-    public ClientContext getClient() {
+    public EngineClient getClient() {
         return client;
     }
 
@@ -109,7 +109,7 @@ public class EngineMessage implements ReferenceCounted {
      * </p>
      */
     public static class Builder {
-        private ClientContext client;
+        private EngineClient client;
         private ByteBuf content;
         private Transport transport;
 
@@ -119,7 +119,7 @@ public class EngineMessage implements ReferenceCounted {
          * @param client 客户端上下文
          * @return 当前构建器实例
          */
-        public Builder client(ClientContext client) {
+        public Builder client(EngineClient client) {
             this.client = client;
             return this;
         }

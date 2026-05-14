@@ -8,12 +8,12 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class EngineIOClient implements EngineClient<HandshakeData> {
+public class EngineIOClient implements EngineClient {
 
     private final int engineIOVersion;
     private final String sessionId;
     private final Transport transport;
-    private final HandshakeData handshakeData;
+    private final Handshake handshakeData;
     private final AtomicBoolean connected;
     private final Queue<EngineIOPacket<?>> packets;
 
@@ -51,7 +51,7 @@ public class EngineIOClient implements EngineClient<HandshakeData> {
     }
 
     @Override
-    public HandshakeData getHandshakeData() {
+    public Handshake getHandshakeData() {
         return handshakeData;
     }
 
@@ -77,12 +77,12 @@ public class EngineIOClient implements EngineClient<HandshakeData> {
 
     public static class Builder {
         private String sessionId;
-        private int engineIOVersion;
+        private Integer engineIOVersion;
         private Transport transport;
-        private HandshakeData handshakeData;
+        private Handshake handshakeData;
         private final AtomicBoolean connected = new AtomicBoolean(false);
 
-        public Builder engineIOVersion(int engineIOVersion) {
+        public Builder engineIOVersion(Integer engineIOVersion) {
             this.engineIOVersion = engineIOVersion;
             return this;
         }
@@ -97,7 +97,7 @@ public class EngineIOClient implements EngineClient<HandshakeData> {
             return this;
         }
 
-        public Builder handshakeData(HandshakeData handshakeData) {
+        public Builder handshakeData(Handshake handshakeData) {
             this.handshakeData = handshakeData;
             return this;
         }
@@ -107,8 +107,8 @@ public class EngineIOClient implements EngineClient<HandshakeData> {
             return this;
         }
 
-        public EngineClient<HandshakeData> build() {
-            if (engineIOVersion < 1) {
+        public EngineClient build() {
+            if (engineIOVersion == null || engineIOVersion < 0) {
                 engineIOVersion = 4;
             }
             return new EngineIOClient(this);

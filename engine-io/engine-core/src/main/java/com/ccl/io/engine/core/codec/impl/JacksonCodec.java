@@ -8,6 +8,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.*;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 
 /**
  * 基于 Jackson 的字符串编解码器实现
@@ -54,6 +56,24 @@ public class JacksonCodec implements Codec {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(SerializationFeature.WRITE_BIGDECIMAL_AS_PLAIN, true);
         objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    }
+
+    @Override
+    public <T> T readValue(Reader reader, Class<T> clazz) throws DeserializationException {
+        try {
+            return objectMapper.readValue(reader, clazz);
+        } catch (IOException e) {
+            throw new DeserializationException(e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void writeValue(Writer writer, Object value) throws SerializationException {
+        try {
+            objectMapper.writeValue(writer, value);
+        } catch (IOException e) {
+            throw new SerializationException(e.getMessage(), e);
+        }
     }
 
     @Override

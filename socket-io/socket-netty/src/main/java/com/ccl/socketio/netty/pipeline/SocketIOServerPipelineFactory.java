@@ -1,6 +1,7 @@
 package com.ccl.socketio.netty.pipeline;
 
 import com.ccl.io.engine.netty.handler.EngineIOHandshakeHandler;
+import com.ccl.io.engine.netty.handler.EngineIOSessionHandler;
 import com.ccl.io.engine.netty.handler.codec.EnginePacketDecoder;
 import com.ccl.io.engine.netty.handler.codec.EnginePacketEncoder;
 import com.ccl.io.engine.netty.transport.PollingTransport;
@@ -102,6 +103,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
         pipeline.addLast(EnginePacketEncoder.class.getName(), new EnginePacketEncoder());
         // EngineIO握手处理器（核心）
         pipeline.addLast(EngineIOHandshakeHandler.class.getName(), new EngineIOHandshakeHandler("/socket.io", 65536));
+        pipeline.addLast(EngineIOSessionHandler.class.getName(), new EngineIOSessionHandler());
 
         // --- Engine.IO heartbeat ---
         // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));

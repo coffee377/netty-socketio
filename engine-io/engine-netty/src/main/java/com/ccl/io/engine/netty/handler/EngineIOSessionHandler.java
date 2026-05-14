@@ -1,7 +1,8 @@
 package com.ccl.io.engine.netty.handler;
 
-import com.ccl.io.engine.core.entity.ClientContext;
-import com.ccl.io.engine.core.session.SessionManager;
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.core.store.MemoryEngineClientStore;
+import com.ccl.io.engine.store.EngineClientStore;
 import io.netty.channel.*;
 import io.netty.util.AttributeKey;
 
@@ -16,15 +17,20 @@ import io.netty.util.AttributeKey;
  * </ul>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
 
-    private static final AttributeKey<ClientContext> CLIENT_CONTEXT = AttributeKey.valueOf("clientContext");
-    private final SessionManager sessionManager;
+    public static final AttributeKey<EngineClient> ENGINE_CLIENT = AttributeKey.valueOf("engine_client");
+
+    private final EngineClientStore<?> sessionStore;
+
+    public EngineIOSessionHandler(EngineClientStore<?> sessionStore) {
+        this.sessionStore = sessionStore;
+    }
 
     public EngineIOSessionHandler() {
-        this.sessionManager = SessionManager.getInstance();
+        this(new MemoryEngineClientStore());
     }
 
     /**
@@ -32,13 +38,13 @@ public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-
-        if (sessionId != null && sessionManager.hasSession(sessionId)) {
-            ClientContext context = sessionManager.getSession(sessionId);
-            ctx.channel().attr(CLIENT_CONTEXT).set(context);
+        if (ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get() == null) {
+            String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
+            if (sessionId != null && sessionStore.hasClient(sessionId)) {
+                EngineClient client = sessionStore.getClient(sessionId);
+                ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).set(client);
+            }
         }
-
         super.channelRead(ctx, msg);
     }
 
@@ -47,10 +53,7 @@ public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (sessionId != null) {
-            sessionManager.removeSession(sessionId);
-        }
+        removeClient(ctx);
         super.channelInactive(ctx);
     }
 
@@ -59,20 +62,15 @@ public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (sessionId != null) {
-            sessionManager.removeSession(sessionId);
-        }
+//        removeClient(ctx);
         ctx.close();
     }
 
-    /**
-     * 获取当前 Channel 绑定的客户端上下文
-     *
-     * @param ctx Channel 处理器上下文
-     * @return 客户端上下文，未绑定时返回 null
-     */
-    public static ClientContext getClientContext(ChannelHandlerContext ctx) {
-        return ctx.channel().attr(CLIENT_CONTEXT).get();
+    private void removeClient(ChannelHandlerContext ctx) {
+        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
+        if (sessionId != null &&  sessionStore.hasClient(sessionId)) {
+            sessionStore.removeClient(sessionId);
+        }
     }
+
 }

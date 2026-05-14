@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author coffee377
  * @since 4.0.0
  */
-public interface EngineClient<T> extends EngineOperations {
+public interface EngineClient extends EngineOperations {
 
     /**
      * 获取 Engine.IO 协议版本
@@ -43,7 +43,7 @@ public interface EngineClient<T> extends EngineOperations {
      *
      * @return 握手阶段返回的配置数据
      */
-    T getHandshakeData();
+    Handshake getHandshakeData();
 
     /**
      * 检查连接状态

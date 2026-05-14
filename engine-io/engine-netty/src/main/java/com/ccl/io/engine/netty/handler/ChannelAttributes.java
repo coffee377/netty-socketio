@@ -1,5 +1,7 @@
 package com.ccl.io.engine.netty.handler;
 
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.EngineIOClient;
 import io.netty.util.AttributeKey;
 import io.netty.handler.codec.http.HttpRequest;
 
@@ -14,6 +16,7 @@ import io.netty.handler.codec.http.HttpRequest;
  */
 public class ChannelAttributes {
 
+    public static final AttributeKey<EngineClient> ENGINE_CLIENT = AttributeKey.valueOf("engine_client");
     /**
      * 会话 ID 属性键
      *

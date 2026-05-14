@@ -1,9 +1,11 @@
 package com.ccl.io.engine.netty.handler.codec;
 
+import com.ccl.io.engine.EngineClient;
+import com.ccl.io.engine.EngineIOClient;
 import com.ccl.io.engine.codec.EngineIODecoder;
 import com.ccl.io.engine.core.codec.impl.EngineIODecoderV4;
-import com.ccl.io.engine.core.entity.ClientContext;
 import com.ccl.io.engine.message.EngineMessage;
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.Transport;
 import io.netty.buffer.ByteBuf;
@@ -44,7 +46,8 @@ public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessage> 
     @Override
     protected void decode(ChannelHandlerContext ctx, EngineMessage msg, List<Object> out) throws Exception {
         ByteBuf content = msg.getContent();
-        ClientContext client = msg.getClient();
+        EngineClient client = msg.getClient();
+        EngineClient ioClient = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
 
         if (log.isTraceEnabled()) {
             log.trace("IN message: {} for sessionId: {}", content.toString(CharsetUtil.UTF_8), client.getSessionId());
