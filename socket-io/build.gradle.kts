@@ -5,26 +5,11 @@ plugins {
 
 group = "com.ccl.io.socket"
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
-    }
-}
-
 subprojects {
     apply(plugin = "java-library")
     apply(plugin = "maven-publish")
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(8))
-        }
-    }
-
     dependencies {
-//        testImplementation(platform("org.junit:junit-bom:6.0.0"))
-//        testImplementation("org.junit.jupiter:junit-jupiter")
-//        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     tasks {
@@ -45,11 +30,10 @@ subprojects {
             options.compilerArgs.addAll(
                 listOf(
                     "-Xlint:-options",
-                    //"-Xlint:unchecked",
-                    //"-Xlint:deprecation"
+                    "-Xlint:-unchecked",
                 )
             )
-            // options.release.set(8)
+            options.release.set(8)
         }
 
         test {

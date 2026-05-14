@@ -15,12 +15,6 @@ subprojects {
         testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
-    java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(8))
-        }
-    }
-
     tasks {
         clean {
             delete(".settings", ".classpath", ".project", "bin")
@@ -43,7 +37,7 @@ subprojects {
                 )
             )
             options.isDeprecation = false
-            // options.release.set(8)
+            options.release.set(8)
         }
 
         test {
