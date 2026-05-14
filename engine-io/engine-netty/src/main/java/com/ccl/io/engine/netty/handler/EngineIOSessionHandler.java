@@ -1,10 +1,12 @@
 package com.ccl.io.engine.netty.handler;
 
 import com.ccl.io.engine.EngineClient;
-import com.ccl.io.engine.core.store.MemoryEngineClientStore;
 import com.ccl.io.engine.store.EngineClientStore;
 import io.netty.channel.*;
-import io.netty.util.AttributeKey;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.QueryStringDecoder;
+
+import java.util.Collections;
 
 /**
  * Engine.IO 会话生命周期处理器
@@ -21,16 +23,10 @@ import io.netty.util.AttributeKey;
  */
 public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
 
-    public static final AttributeKey<EngineClient> ENGINE_CLIENT = AttributeKey.valueOf("engine_client");
-
     private final EngineClientStore<?> sessionStore;
 
     public EngineIOSessionHandler(EngineClientStore<?> sessionStore) {
         this.sessionStore = sessionStore;
-    }
-
-    public EngineIOSessionHandler() {
-        this(new MemoryEngineClientStore());
     }
 
     /**
@@ -39,7 +35,7 @@ public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get() == null) {
-            String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
+            String sessionId = getSessionIdFrom(msg);
             if (sessionId != null && sessionStore.hasClient(sessionId)) {
                 EngineClient client = sessionStore.getClient(sessionId);
                 ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).set(client);
@@ -48,28 +44,33 @@ public class EngineIOSessionHandler extends ChannelInboundHandlerAdapter {
         super.channelRead(ctx, msg);
     }
 
+
     /**
      * 连接断开时移除对应的 Session
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        removeClient(ctx);
+        removeClient(ctx.channel());
         super.channelInactive(ctx);
     }
 
-    /**
-     * 处理异常时移除 Session 并关闭连接
-     */
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-//        removeClient(ctx);
-        ctx.close();
+    private String getSessionIdFrom(Object msg) {
+        if (msg instanceof FullHttpRequest) {
+            return getSessionIdFromRequest((FullHttpRequest) msg);
+        }
+        return null;
     }
 
-    private void removeClient(ChannelHandlerContext ctx) {
-        String sessionId = ctx.channel().attr(ChannelAttributes.SESSION_ID).get();
-        if (sessionId != null &&  sessionStore.hasClient(sessionId)) {
-            sessionStore.removeClient(sessionId);
+    private String getSessionIdFromRequest(FullHttpRequest request) {
+        QueryStringDecoder decoder = new QueryStringDecoder(request.uri());
+        return decoder.parameters().getOrDefault("sid", Collections.emptyList()).stream().findFirst().orElse(null);
+    }
+
+
+    private void removeClient(Channel channel) {
+        EngineClient client = channel.attr(ChannelAttributes.ENGINE_CLIENT).get();
+        if (client != null && sessionStore.hasClient(client.getSessionId())) {
+            sessionStore.removeClient(client.getSessionId());
         }
     }
 

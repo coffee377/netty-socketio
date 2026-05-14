@@ -15,7 +15,7 @@ import io.netty.util.ReferenceCounted;
  * @author coffee377
  * @since 4.0.0
  */
-public class EngineMessage implements ReferenceCounted {
+public class EngineMessagePack implements ReferenceCounted {
 
     private final EngineClient client;
     private final ByteBuf content;
@@ -57,7 +57,7 @@ public class EngineMessage implements ReferenceCounted {
         return new Builder();
     }
 
-    private EngineMessage(Builder builder) {
+    private EngineMessagePack(Builder builder) {
         this.client = builder.client;
         this.content = builder.content;
         this.transport = builder.transport;
@@ -151,11 +151,11 @@ public class EngineMessage implements ReferenceCounted {
          *
          * @return 完整的 EngineMessage 实例
          */
-        public EngineMessage build() {
+        public EngineMessagePack build() {
             if (transport == null) {
                 transport = Transport.POLLING;
             }
-            return new EngineMessage(this);
+            return new EngineMessagePack(this);
         }
     }
 }
