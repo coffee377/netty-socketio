@@ -1,8 +1,6 @@
 package com.ccl.io.engine.core.parser;
 
 import com.ccl.io.engine.Parser;
-import com.ccl.io.engine.codec.VersionedEngineIODecoder;
-import com.ccl.io.engine.codec.VersionedEngineIOEncoder;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 
 import java.nio.ByteBuffer;
@@ -31,7 +29,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @see ServiceLoader
  * @since 4.0.0
  */
-public class ParserDelegate implements Parser, VersionedEngineIODecoder, VersionedEngineIOEncoder {
+public class ParserDelegate implements Parser {
     /**
      * 版本号到 Parser 实例的映射
      */
@@ -60,6 +58,19 @@ public class ParserDelegate implements Parser, VersionedEngineIODecoder, Version
         this(Parser.NOOP);
     }
 
+    /**
+     * 根据协议版本获取对应的 Parser，首次获取后将结果缓存
+     *
+     * <p>查找顺序：
+     * <ol>
+     *   <li>优先从缓存中返回已匹配的 Parser</li>
+     *   <li>遍历所有已加载的 Parser，返回首个支持该版本的实现</li>
+     *   <li>未匹配时返回默认 Parser</li>
+     * </ol>
+     *
+     * @param protocolVersion 协议版本号
+     * @return 匹配的 Parser 实例
+     */
     private Parser getParser(int protocolVersion) {
         return versionedParsers.computeIfAbsent(protocolVersion,
                 version -> parsers.stream()
@@ -72,6 +83,15 @@ public class ParserDelegate implements Parser, VersionedEngineIODecoder, Version
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 解码指定协议版本的单个数据包
+     *
+     * <p>根据协议版本查找对应的 Parser 委托解码</p>
+     *
+     * @param data            原始数据（字符串或字节数组）
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 解码后的数据包
+     */
     @Override
     public EngineIOPacket<?> decodePacket(Object data, int protocolVersion) {
         return getParser(protocolVersion).decodePacket(data);
@@ -82,6 +102,15 @@ public class ParserDelegate implements Parser, VersionedEngineIODecoder, Version
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 解码指定协议版本的批量 Payload
+     *
+     * <p>根据协议版本查找对应的 Parser 委托解码</p>
+     *
+     * @param payload         原始数据（字符串或字节数组）
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 解码后的数据包列表
+     */
     @Override
     public List<EngineIOPacket<?>> decodePayload(Object payload, int protocolVersion) {
         return getParser(protocolVersion).decodePayload(payload);
@@ -92,6 +121,16 @@ public class ParserDelegate implements Parser, VersionedEngineIODecoder, Version
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 编码指定协议版本的单个数据包
+     *
+     * <p>根据协议版本查找对应的 Parser 委托编码</p>
+     *
+     * @param packet          数据包
+     * @param supportBinary   是否支持二进制
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 编码后的字节数组
+     */
     @Override
     public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary, int protocolVersion) {
         return getParser(protocolVersion).encodePacket(packet, supportBinary);
@@ -102,6 +141,16 @@ public class ParserDelegate implements Parser, VersionedEngineIODecoder, Version
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * 编码指定协议版本的多个数据包为 Payload
+     *
+     * <p>根据协议版本查找对应的 Parser 委托编码</p>
+     *
+     * @param packets         数据包列表
+     * @param supportBinary   是否支持二进制
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 编码后的字节缓冲区
+     */
     @Override
     public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary, int protocolVersion) {
         return getParser(protocolVersion).encodePayload(packets, supportBinary);
