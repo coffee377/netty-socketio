@@ -2,7 +2,6 @@ package com.ccl.io.engine.netty.handler.codec;
 
 import com.ccl.io.engine.EngineClient;
 import com.ccl.io.engine.codec.EngineIODecoder;
-import com.ccl.io.engine.core.codec.impl.EngineIODecoderV4;
 import com.ccl.io.engine.message.EngineMessagePack;
 import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.io.engine.protocol.EngineIOPacket;
@@ -10,6 +9,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.util.AttributeKey;
 import io.netty.util.CharsetUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,15 +38,13 @@ public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessagePa
         this.decoder = decoder;
     }
 
-    public EnginePacketDecoder() {
-        this(new EngineIODecoderV4());
-    }
-
     @Override
     protected void decode(ChannelHandlerContext ctx, EngineMessagePack msg, List<Object> out) throws Exception {
         ByteBuf content = msg.getContent();
         EngineClient client = msg.getClient();
         EngineClient client2 = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
+
+        Object eio = ctx.channel().attr(AttributeKey.valueOf("EIO")).setIfAbsent(4);
 
         if (log.isTraceEnabled()) {
             log.trace("IN message: {} for sessionId: {}", content.toString(CharsetUtil.UTF_8), client.getSessionId());

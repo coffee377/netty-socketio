@@ -1,7 +1,6 @@
 package com.ccl.io.engine.netty.handler.codec;
 
 import com.ccl.io.engine.codec.EngineIOEncoder;
-import com.ccl.io.engine.core.codec.impl.EngineIOEncoderV4;
 import com.ccl.io.engine.netty.handler.CorsUtil;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import io.netty.buffer.ByteBuf;
@@ -40,9 +39,6 @@ public class EnginePacketEncoder extends MessageToMessageEncoder<EngineIOPacket<
         this.encoder = encoder;
     }
 
-    public EnginePacketEncoder() {
-        this(new EngineIOEncoderV4());
-    }
 
     @Override
     protected void encode(ChannelHandlerContext ctx, EngineIOPacket<?> msg, List<Object> out) throws Exception {
