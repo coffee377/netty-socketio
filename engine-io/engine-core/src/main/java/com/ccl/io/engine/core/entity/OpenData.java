@@ -14,7 +14,7 @@ import java.util.stream.Stream;
  * 包含会话 ID、可升级传输方式及心跳配置等信息</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class OpenData {
 

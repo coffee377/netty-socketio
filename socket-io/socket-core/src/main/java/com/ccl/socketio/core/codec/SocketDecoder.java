@@ -9,7 +9,7 @@ import com.ccl.socketio.core.protocol.SocketPacket;
  *
  * @author coffee377
  * @see SocketEncoder
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface SocketDecoder extends SocketIO {
 

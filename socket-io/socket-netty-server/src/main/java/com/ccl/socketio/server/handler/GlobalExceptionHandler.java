@@ -18,7 +18,7 @@ import java.io.IOException;
  * IO 异常直接关闭连接，其他异常向客户端返回错误信息。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 @Sharable
 public class GlobalExceptionHandler extends ChannelInboundHandlerAdapter {

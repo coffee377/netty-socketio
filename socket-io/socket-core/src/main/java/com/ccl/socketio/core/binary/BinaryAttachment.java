@@ -10,7 +10,7 @@ import java.util.List;
  * <p>管理与 Socket.IO 数据包关联的二进制附件数据，支持添加、获取和占位符替换操作。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class BinaryAttachment {
 

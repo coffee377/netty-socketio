@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
  * new JacksonCodec(new SocketIOJsonModule())
  * }</pre>
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIOJsonModule extends SimpleModule {
 

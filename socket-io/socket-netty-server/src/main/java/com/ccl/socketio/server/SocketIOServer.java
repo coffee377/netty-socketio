@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * 使用 {@link SocketIOBootstrap} 启动 Netty 服务，通过 {@link SocketIOListener} 处理业务逻辑。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIOServer {
 

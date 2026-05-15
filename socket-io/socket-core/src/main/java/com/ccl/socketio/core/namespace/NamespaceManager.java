@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 使用 ConcurrentHashMap 保证线程安全，支持按名称访问命名空间。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class NamespaceManager {
 

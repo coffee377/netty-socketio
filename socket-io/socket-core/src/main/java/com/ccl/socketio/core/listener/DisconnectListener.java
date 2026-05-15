@@ -8,7 +8,7 @@ import com.ccl.socketio.core.namespace.SocketIOClient;
  * <p>当客户端断开连接时回调此接口。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface DisconnectListener {
 

@@ -6,7 +6,7 @@ package com.ccl.socketio.server.listener;
  * <p>定义服务端处理客户端生命周期事件（连接、断开、事件、错误）的回调方法。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface SocketIOListener {
 

@@ -14,7 +14,7 @@ import java.util.function.Consumer;
  * 使用单例模式，内部通过 ScheduledExecutorService 定期清理过期条目。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class AckManager {
 

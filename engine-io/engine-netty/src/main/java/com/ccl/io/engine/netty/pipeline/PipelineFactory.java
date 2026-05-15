@@ -13,7 +13,7 @@ import io.netty.channel.ChannelPipeline;
  * <p>WebSocketServerProtocolHandler 会在握手成功且 transport=websocket 时动态添加，不在初始 pipeline 中
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class PipelineFactory extends ChannelInitializer<Channel> {
 

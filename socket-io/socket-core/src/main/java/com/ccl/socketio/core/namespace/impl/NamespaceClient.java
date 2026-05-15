@@ -16,7 +16,7 @@ import java.util.Set;
  * <p>封装客户端在特定命名空间下的会话信息，提供发送事件、管理房间等操作能力。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class NamespaceClient implements SocketIOClient {
     private final SocketIONamespace namespace;

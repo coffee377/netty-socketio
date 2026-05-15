@@ -28,7 +28,7 @@ import java.util.List;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 @Sharable
 public class SocketPacketEncoder extends MessageToMessageEncoder<SocketPacket<?>> {

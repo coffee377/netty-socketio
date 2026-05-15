@@ -8,7 +8,7 @@ import com.ccl.socketio.core.namespace.SocketIOClient;
  * <p>定义各类事件监听器的注册方法，包括连接、断开、心跳和自定义事件。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface ClientListeners {
 

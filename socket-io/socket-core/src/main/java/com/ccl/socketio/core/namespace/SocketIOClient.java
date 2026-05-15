@@ -13,7 +13,7 @@ import java.util.Set;
  * <p>定义 Socket.IO 客户端的行为，包括获取连接信息、管理房间和通道状态。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface SocketIOClient extends ClientOperations {
 

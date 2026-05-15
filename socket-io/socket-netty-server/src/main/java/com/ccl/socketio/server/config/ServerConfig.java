@@ -6,7 +6,7 @@ package com.ccl.socketio.server.config;
  * <p>封装服务端启动所需的各项配置参数，通过 {@link ServerConfigBuilder} 构建。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class ServerConfig {
 

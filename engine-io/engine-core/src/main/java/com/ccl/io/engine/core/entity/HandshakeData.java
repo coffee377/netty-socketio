@@ -12,7 +12,7 @@ import java.util.Map;
  * URL 参数、跨域标识及认证令牌等</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class HandshakeData {
 

@@ -9,7 +9,7 @@ import com.ccl.socketio.core.namespace.SocketIOClient;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface PongListener {
 

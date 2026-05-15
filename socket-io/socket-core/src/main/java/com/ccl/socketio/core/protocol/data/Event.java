@@ -8,7 +8,7 @@ import java.util.List;
  * <p>用于封装 Socket.IO 事件消息的事件名称和参数列表</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class Event {
 

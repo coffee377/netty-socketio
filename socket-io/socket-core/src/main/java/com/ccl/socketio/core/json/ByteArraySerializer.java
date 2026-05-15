@@ -16,7 +16,7 @@ import java.util.List;
  * 同时将原始 byte[] 捕获到 {@link #BINARY_DATA} 中供后续处理。
  * 这是 Socket.IO 协议中二进制附件的标准处理方式。
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class ByteArraySerializer extends JsonSerializer<byte[]> {
 

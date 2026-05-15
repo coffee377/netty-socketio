@@ -22,7 +22,7 @@ import java.util.List;
  * 反序列化为 {@link Event} 对象。支持按声明参数类型进行类型化反序列化，
  * 无类型信息时回退为通用 Object 类型。
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EventDeserializer extends StdDeserializer<Event> {
     private final static Logger log = LoggerFactory.getLogger(EventDeserializer.class);

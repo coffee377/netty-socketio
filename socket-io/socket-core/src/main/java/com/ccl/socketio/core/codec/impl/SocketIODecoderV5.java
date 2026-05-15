@@ -29,7 +29,7 @@ import java.util.*;
  * @author coffee377
  * @see SocketDecoder
  * @see SocketIOEncoderV5
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIODecoderV5 implements SocketDecoder {
 

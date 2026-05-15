@@ -12,7 +12,7 @@ import io.netty.channel.*;
  * 支持连接、断开、事件和错误四种回调类型。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 @ChannelHandler.Sharable
 public class BusinessEventHandler extends SimpleChannelInboundHandler<SocketPacket> {

@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * 支持 WebSocket 和 Polling 两种传输模式。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIOBootstrap {
 

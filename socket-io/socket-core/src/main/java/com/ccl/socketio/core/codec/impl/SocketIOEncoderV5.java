@@ -30,7 +30,7 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  * Event 输出为 JSON 数组，byte[] 输出为二进制占位对象。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  * @see SocketDecoder
  * @see SocketIODecoderV5
  */

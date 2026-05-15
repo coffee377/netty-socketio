@@ -10,7 +10,7 @@ import java.util.Collection;
  * <p>定义命名空间的核心行为，包括客户端管理、广播操作和监听器注册。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface SocketIONamespace {
 

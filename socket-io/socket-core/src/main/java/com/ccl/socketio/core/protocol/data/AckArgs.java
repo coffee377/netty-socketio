@@ -8,7 +8,7 @@ import java.util.List;
  * <p>用于封装 ACK 确认消息的 ID 和数据负载。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class AckArgs {
 

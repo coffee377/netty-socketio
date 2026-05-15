@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * 使用单例模式，内部通过双层 ConcurrentHashMap 按命名空间和事件名组织处理器。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EventRouter {
 

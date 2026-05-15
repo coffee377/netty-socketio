@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * <p>展示 Socket.IO 服务端的基本使用方法，包括命名空间、房间、事件监听器配置。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public final class CoreExampleMain {
 

@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
  * 通过 {@link com.ccl.socketio.server.listener.SocketIOListener} 处理连接、事件和错误。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class ChatServerExample {
 

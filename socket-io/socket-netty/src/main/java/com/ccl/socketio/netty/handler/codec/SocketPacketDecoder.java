@@ -31,7 +31,7 @@ import java.util.List;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 @Sharable
 public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<?>> {
@@ -92,6 +92,7 @@ public class SocketPacketDecoder extends MessageToMessageDecoder<EngineIOPacket<
             if (packet != null) {
                 packet.addAttachment((byte[]) data);
                 if (packet.isAttachmentsLoaded()) {
+                    ctx.channel().attr(SocketIOChannelAttributes.SOCKET_PACKET).set(null);
                     return packet;
                 }
             }

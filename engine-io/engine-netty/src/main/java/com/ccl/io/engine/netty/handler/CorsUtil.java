@@ -14,7 +14,7 @@ import io.netty.handler.codec.http.HttpResponse;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public final class CorsUtil {
 

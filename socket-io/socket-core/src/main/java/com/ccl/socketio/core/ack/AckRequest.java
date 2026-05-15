@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>当收到需要确认的数据包时，通过此类发送确认响应。
  * 确保 ACK 只发送一次（通过 AtomicBoolean 保证）。
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class AckRequest {
 

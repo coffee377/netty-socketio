@@ -27,7 +27,7 @@ import static com.ccl.socketio.core.protocol.SocketPacket.Type.BINARY_EVENT;
  * @param <T> 数据包负载数据类型
  * @author coffee377
  * @see <a href="https://socket.io/zh-CN/docs/v4/socket-io-protocol/">Socket.IO 协议文档</a>
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketPacket<T> {
 

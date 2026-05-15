@@ -12,7 +12,7 @@ import com.ccl.io.engine.netty.transport.PollingTransport.PendingRequest;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface PollingSessionStore {
 

@@ -12,7 +12,7 @@ import io.netty.handler.codec.http.HttpRequest;
  * </p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class ChannelAttributes {
 

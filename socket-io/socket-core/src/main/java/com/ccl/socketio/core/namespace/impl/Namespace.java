@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * 采用 ConcurrentHashMap 保证并发安全，支持多线程环境下的客户端增删和事件分发。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class Namespace implements SocketIONamespace {
     private static final Logger log = LoggerFactory.getLogger(Namespace.class);

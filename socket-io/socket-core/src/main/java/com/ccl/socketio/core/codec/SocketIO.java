@@ -9,7 +9,7 @@ import com.ccl.io.engine.codec.Codec;
  * 所有 {@link SocketDecoder} 和 {@link SocketEncoder} 实现应继承此接口</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  * @see SocketDecoder
  * @see SocketEncoder
  */

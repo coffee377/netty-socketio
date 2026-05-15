@@ -9,7 +9,7 @@ import java.util.List;
  * <p>包含端口、心跳参数、传输层、CORS 和 SSL 等配置项。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class ServerOptions {
 

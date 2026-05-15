@@ -11,7 +11,7 @@ import java.util.function.Predicate;
  * <p>定义向多个客户端广播事件的能力，支持排除指定客户端或按条件过滤接收方。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface BroadcastOperations extends ClientOperations {
 

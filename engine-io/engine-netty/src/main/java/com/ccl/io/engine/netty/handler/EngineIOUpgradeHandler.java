@@ -24,7 +24,7 @@ import java.util.Collections;
  * </ul>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EngineIOUpgradeHandler extends HttpServerUpgradeHandler {
 

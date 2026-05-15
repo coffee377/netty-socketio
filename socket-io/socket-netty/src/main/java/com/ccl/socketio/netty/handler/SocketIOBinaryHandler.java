@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 同时管理待处理的二进制附件，支持按会话 ID 跟踪附件状态。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIOBinaryHandler extends ByteToMessageDecoder {
 

@@ -8,7 +8,7 @@ import com.ccl.io.engine.exception.EngineIOException;
  * <p>当根据会话 ID 查找客户端会话时，目标会话不存在时抛出</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SessionNotFoundException extends EngineIOException {
 

@@ -18,7 +18,7 @@ import java.io.Writer;
  * 默认配置忽略空值、允许未知属性、大数字以明文输出</p>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class JacksonCodec implements Codec {
 

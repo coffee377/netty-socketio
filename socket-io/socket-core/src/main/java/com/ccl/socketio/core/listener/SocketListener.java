@@ -9,7 +9,7 @@ import com.ccl.socketio.core.protocol.data.Event;
  * <p>定义客户端在命名空间下的连接、断开、事件接收和错误处理回调。
  * 继承 {@link ConnectListener} 和 {@link DisconnectListener} 接口。
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public interface SocketListener extends ConnectListener, DisconnectListener {
 

@@ -27,7 +27,7 @@ import java.util.List;
  * @author coffee377
  * @see EngineIODecoder
  * @see EngineIOEncoderV4
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EngineIODecoderV4 implements EngineIODecoder {
 

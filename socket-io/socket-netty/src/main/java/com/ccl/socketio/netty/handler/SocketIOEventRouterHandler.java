@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  * 当前包含临时测试逻辑，用于验证二进制事件的处理流程。
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class SocketIOEventRouterHandler extends SimpleChannelInboundHandler<SocketPacket<?>> {
     private final static Logger log = LoggerFactory.getLogger(SocketIOEventRouterHandler.class);

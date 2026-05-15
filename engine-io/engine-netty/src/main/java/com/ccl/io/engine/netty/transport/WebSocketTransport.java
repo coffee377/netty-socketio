@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
  * </ul>
  *
  * @author coffee377
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class WebSocketTransport extends SimpleChannelInboundHandler<WebSocketFrame>  {
     private final static Logger log = LoggerFactory.getLogger(WebSocketTransport.class);

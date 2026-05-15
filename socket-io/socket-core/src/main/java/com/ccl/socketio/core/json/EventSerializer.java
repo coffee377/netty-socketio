@@ -14,7 +14,7 @@ import java.io.IOException;
  * {@code ["eventName", arg1, arg2, ...]}。
  * 如果参数中包含 byte[]，会自动触发 {@link ByteArraySerializer} 写入占位对象。
  *
- * @since 4.0.0-alpha.0
+ * @since 4.0.0
  */
 public class EventSerializer extends JsonSerializer<Event> {
 
