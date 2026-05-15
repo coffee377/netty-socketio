@@ -72,7 +72,6 @@ public class EngineIOClient implements EngineClient {
 
     @Override
     public void disconnect() {
-        throw new UnsupportedOperationException();
     }
 
     public static class Builder {
