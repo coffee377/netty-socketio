@@ -13,6 +13,4 @@ import com.ccl.io.engine.codec.EngineIOEncoder;
  */
 public interface Parser extends EngineIOEncoder, EngineIODecoder {
 
-    Parser NOOP = new NoOpParser();
-
 }
