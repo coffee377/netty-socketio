@@ -1,6 +1,7 @@
 package com.ccl.io.engine.codec;
 
 import com.ccl.io.engine.EngineIO;
+import com.ccl.io.engine.exception.EngineIOException;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 
 import java.nio.ByteBuffer;
@@ -41,5 +42,41 @@ public interface EngineIOEncoder extends EngineIO {
      * @return 编码后的字节缓冲区，空列表返回空缓冲区
      */
     ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary);
+
+    /**
+     * 编码单个数据包（指定协议版本）
+     *
+     * <p>委托到 {@link #encodePacket(EngineIOPacket, boolean)} 前先校验版本兼容性</p>
+     *
+     * @param packet          数据包
+     * @param supportBinary   是否支持二进制（true: 直接传输二进制, false: Base64 编码）
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 编码后的字节数组
+     * @throws EngineIOException 当该实现不支持指定的协议版本时
+     */
+    default byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary, int protocolVersion) {
+        if (!isSupport(protocolVersion)) {
+            throw new EngineIOException("Unsupported Engine.IO protocol version: " + protocolVersion);
+        }
+        return encodePacket(packet, supportBinary);
+    }
+
+    /**
+     * 编码多个数据包为 Payload（指定协议版本）
+     *
+     * <p>委托到 {@link #encodePayload(List, boolean)} 前先校验版本兼容性</p>
+     *
+     * @param packets         数据包列表
+     * @param supportBinary   是否支持二进制（true: 直接传输二进制, false: Base64 编码）
+     * @param protocolVersion Engine.IO 协议版本号
+     * @return 编码后的字节缓冲区，空列表返回空缓冲区
+     * @throws EngineIOException 当该实现不支持指定的协议版本时
+     */
+    default ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary, int protocolVersion) {
+        if (!isSupport(protocolVersion)) {
+            throw new EngineIOException("Unsupported Engine.IO protocol version: " + protocolVersion);
+        }
+        return encodePayload(packets, supportBinary);
+    }
 
 }

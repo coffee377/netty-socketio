@@ -26,8 +26,6 @@ subprojects {
         options.compilerArgs.addAll(
             listOf(
                 "-Xlint:-options",
-                //"-Xlint:unchecked",
-                //"-Xlint:deprecation"
             )
         )
         options.release.set(8)

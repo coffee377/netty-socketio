@@ -1,12 +1,12 @@
 package com.ccl.io.engine.netty.transport;
 
 import com.ccl.io.engine.EngineClient;
-import com.ccl.io.engine.EngineIOClient;
-import com.ccl.io.engine.message.EngineMessage;
+import com.ccl.io.engine.message.EngineMessagePack;
 import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.io.engine.netty.handler.CorsUtil;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.Transport;
+import com.ccl.io.engine.store.EngineClientStore;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
@@ -43,7 +43,11 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
     private static final Logger log = LoggerFactory.getLogger(PollingTransport.class);
     private static final ConcurrentHashMap<String, Queue<PendingRequest>> PENDING_GETS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Queue<ByteBuf>> OUTPUT_PACKETS = new ConcurrentHashMap<>();
+    private final EngineClientStore<?> clientStore;
 
+    public PollingTransport(EngineClientStore<?> clientStore) {
+        this.clientStore = clientStore;
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
@@ -58,6 +62,14 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
         if (sessionId == null || sessionId.isEmpty()) {
             sendErrorResponse(ctx, HttpResponseStatus.BAD_REQUEST);
             return;
+        }
+
+        // 3.
+        log.warn("Engine Client Count: {}", clientStore.size());
+        EngineClient engineClient = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
+        if (engineClient == null && clientStore.hasClient(sessionId)) {
+            EngineClient client = clientStore.getClient(sessionId);
+            ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).set(client);
         }
 
         // 3. 分方法处理 GET/POST
@@ -126,12 +138,12 @@ public class PollingTransport extends SimpleChannelInboundHandler<FullHttpReques
 
         // 2. 传递消息到下一个处理器
         EngineClient client = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
-        EngineMessage message = EngineMessage.builder().client(client)
+        EngineMessagePack message = EngineMessagePack.builder().client(client)
                 .content(content).transport(Transport.POLLING).build();
         ctx.fireChannelRead(message);
 
         // 3. 若有新消息，唤醒挂起的 GET 请求
-        wakeupPendingGet(sessionId, origin);
+        // wakeupPendingGet(sessionId, origin);
     }
 
     /**

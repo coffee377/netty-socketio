@@ -46,11 +46,11 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
     private final EngineClientStore<EngineIOClient.Builder> store;
     private QueryStringDecoder queryDecoder;
 
-    public EngineIOHandshakeHandler(String connectPath, int maxFramePayloadLength) {
+    public EngineIOHandshakeHandler(String connectPath, EngineClientStore<EngineIOClient.Builder> store, int maxFramePayloadLength) {
         this.connectPath = connectPath;
         this.maxFramePayloadLength = maxFramePayloadLength;
         this.authenticator = Authenticator.NOOP;
-        this.store = new MemoryEngineClientStore();
+        this.store = store;
     }
 
     @Override

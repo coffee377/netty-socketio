@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
-import java.util.Queue;
 
 /**
  * Engine.IO 入站数据包解码处理器
@@ -45,7 +44,7 @@ import java.util.Queue;
  * @see EngineIOPacket
  */
 @Sharable
-public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessage> {
+public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessagePack> {
 
     private static final Logger log = LoggerFactory.getLogger(EnginePacketDecoder.class);
 
@@ -131,7 +130,7 @@ public class EnginePacketDecoder extends MessageToMessageDecoder<EngineMessage> 
      * @throws Exception 解码过程中可能抛出的异常
      */
     @Override
-    protected void decode(ChannelHandlerContext ctx, EngineMessage msg, List<Object> out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, EngineMessagePack msg, List<Object> out) throws Exception {
         ByteBuf content = msg.getContent();
         EngineClient client = msg.getClient();
 

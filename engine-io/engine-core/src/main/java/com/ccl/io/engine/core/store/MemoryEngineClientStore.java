@@ -10,12 +10,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MemoryEngineClientStore implements EngineClientStore<EngineIOClient.Builder> {
 
+    // TODO: 2026/05/14 21:45 存在内存泄漏
     private final Map<String, EngineClient> clients = new ConcurrentHashMap<>();
 
     @Override
     public EngineClient createClient(EngineIOClient.Builder builder) {
         EngineClient client = builder.build();
-        return clients.computeIfAbsent(client.getSessionId(), key-> client);
+        return clients.computeIfAbsent(client.getSessionId(), key -> client);
     }
 
     @Override
@@ -31,5 +32,10 @@ public class MemoryEngineClientStore implements EngineClientStore<EngineIOClient
     @Override
     public void removeClient(@NotNull String sessionId) {
         clients.remove(sessionId);
+    }
+
+    @Override
+    public int size() {
+        return clients.size();
     }
 }

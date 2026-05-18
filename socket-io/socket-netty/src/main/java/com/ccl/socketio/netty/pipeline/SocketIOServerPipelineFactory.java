@@ -1,7 +1,9 @@
 package com.ccl.socketio.netty.pipeline;
 
+import com.ccl.io.engine.Parser;
+import com.ccl.io.engine.core.parser.ParserFactory;
+import com.ccl.io.engine.core.store.MemoryEngineClientStore;
 import com.ccl.io.engine.netty.handler.EngineIOHandshakeHandler;
-import com.ccl.io.engine.netty.handler.EngineIOSessionHandler;
 import com.ccl.io.engine.netty.handler.codec.EnginePacketDecoder;
 import com.ccl.io.engine.netty.handler.codec.EnginePacketEncoder;
 import com.ccl.io.engine.netty.transport.PollingTransport;
@@ -42,6 +44,8 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
     private final ChannelHandler globalExceptionHandler;
     private final boolean enableCors;
     private final String corsOrigin;
+    private final MemoryEngineClientStore clientStore = new MemoryEngineClientStore();
+    Parser parser = ParserFactory.INSTANCE;
 
     public SocketIOServerPipelineFactory(
             NamespaceManager namespaceManager,
@@ -100,17 +104,19 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                (int) pingTimeout / 1000,
 //                0, TimeUnit.SECONDS));
 
-        pipeline.addLast(EnginePacketEncoder.class.getName(), new EnginePacketEncoder());
+        pipeline.addLast(EnginePacketEncoder.class.getName(), new EnginePacketEncoder(parser));
+
         // EngineIO握手处理器（核心）
-        pipeline.addLast(EngineIOHandshakeHandler.class.getName(), new EngineIOHandshakeHandler("/socket.io", 65536));
-        pipeline.addLast(EngineIOSessionHandler.class.getName(), new EngineIOSessionHandler());
+        pipeline.addLast(EngineIOHandshakeHandler.class.getName(), new EngineIOHandshakeHandler("/socket.io",
+                clientStore, 65536));
+        // pipeline.addLast(EngineIOSessionHandler.class.getName(), new EngineIOSessionHandler(clientStore));
 
         // --- Engine.IO heartbeat ---
         // pipeline.addLast("engineHeartbeat", new EngineIOHeartbeatHandler(pingInterval, pingTimeout));
 
         // Engine.IO Polling 处理器（处理 polling 握手、GET/POST）
-        pipeline.addLast(PollingTransport.class.getName(), new PollingTransport());
-        pipeline.addLast(EnginePacketDecoder.class.getName(), new EnginePacketDecoder());
+        pipeline.addLast(PollingTransport.class.getName(), new PollingTransport(clientStore));
+        pipeline.addLast(EnginePacketDecoder.class.getName(), new EnginePacketDecoder(parser));
 
         pipeline.addLast(SocketPacketEncoder.class.getName(), new SocketPacketEncoder());
         pipeline.addLast(SocketPacketDecoder.class.getName(), new SocketPacketDecoder());
