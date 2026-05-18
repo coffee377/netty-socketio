@@ -1,8 +1,8 @@
 package com.ccl.io.engine.codec;
 
 import com.ccl.io.engine.EngineIO;
-import com.ccl.io.engine.exception.EngineIOException;
 import com.ccl.io.engine.protocol.EngineIOPacket;
+import com.ccl.io.engine.protocol.EngineIOVersion;
 
 import java.util.List;
 
@@ -19,59 +19,50 @@ import java.util.List;
 public interface EngineIODecoder extends EngineIO {
 
     /**
-     * 解码单个数据包
+     * 解码单个数据包（使用默认协议版本）
      *
-     * <p>将原始数据（字符串或字节数组）解码为 {@link EngineIOPacket}，
-     * 根据数据包类型和内容构建对应的数据包实例</p>
+     * <p>默认委托到 {@link #decodePacket(Object, int)}，使用 V4 版本</p>
      *
      * @param data 原始数据（字符串或字节数组）
      * @return 解码后的数据包，data 为 null 时返回 null
      */
-    EngineIOPacket<?> decodePacket(Object data);
+    default EngineIOPacket<?> decodePacket(Object data) {
+        return decodePacket(data, EngineIOVersion.V4.getValue());
+    }
 
     /**
-     * 解码多个数据包（Payload）
+     * 解码指定协议版本的单个数据包
      *
-     * <p>将包含多个数据包的 Payload 数据解码为数据包列表，
-     * 使用记录分隔符（如 0x1E）分割各个数据包</p>
+     * <p>将原始数据解码为 {@link EngineIOPacket}，根据数据包类型和内容构建对应的数据包实例</p>
+     *
+     * @param data            原始数据（字符串或字节数组）
+     * @param protocolVersion  Engine.IO 协议版本号
+     * @return 解码后的数据包，data 为 null 时返回 null
+     */
+    EngineIOPacket<?> decodePacket(Object data, int protocolVersion);
+
+    /**
+     * 解码多个数据包（Payload，使用默认协议版本）
+     *
+     * <p>默认委托到 {@link #decodePayload(Object, int)}，使用 V4 版本</p>
      *
      * @param payload 原始数据（字符串或字节数组）
      * @return 解码后的数据包列表，空数据返回空列表
      */
-    List<EngineIOPacket<?>> decodePayload(Object payload);
-
-    /**
-     * 解码指定协议版本的数据包
-     *
-     * <p>委托到 {@link #decodePacket(Object)} 前先校验版本兼容性</p>
-     *
-     * @param data            原始数据（字符串或字节数组）
-     * @param protocolVersion Engine.IO 协议版本号
-     * @return 解码后的数据包，data 为 null 时返回 null
-     * @throws EngineIOException 当该实现不支持指定的协议版本时
-     */
-    default EngineIOPacket<?> decodePacket(Object data, int protocolVersion) {
-        if (!isSupport(protocolVersion)) {
-            throw new EngineIOException("Unsupported Engine.IO protocol version: " + protocolVersion);
-        }
-        return decodePacket(data);
+    default List<EngineIOPacket<?>> decodePayload(Object payload) {
+        return decodePayload(payload, EngineIOVersion.V4.getValue());
     }
 
     /**
      * 解码指定协议版本的批量 Payload
      *
-     * <p>委托到 {@link #decodePayload(Object)} 前先校验版本兼容性</p>
+     * <p>将包含多个数据包的 Payload 数据解码为数据包列表，
+     * 使用记录分隔符（如 0x1E）分割各个数据包</p>
      *
      * @param payload         原始数据（字符串或字节数组）
      * @param protocolVersion Engine.IO 协议版本号
      * @return 解码后的数据包列表，空数据返回空列表
-     * @throws EngineIOException 当该实现不支持指定的协议版本时
      */
-    default List<EngineIOPacket<?>> decodePayload(Object payload, int protocolVersion) {
-        if (!isSupport(protocolVersion)) {
-            throw new EngineIOException("Unsupported Engine.IO protocol version: " + protocolVersion);
-        }
-        return decodePayload(payload);
-    }
+    List<EngineIOPacket<?>> decodePayload(Object payload, int protocolVersion);
 
 }

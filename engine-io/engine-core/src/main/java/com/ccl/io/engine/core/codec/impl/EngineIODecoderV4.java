@@ -19,7 +19,7 @@ import java.util.List;
  * <ul>
  *   <li>'b' 前缀：Base64 编码的二进制数据（作为 MESSAGE 类型）</li>
  *   <li>类型字节 + 数据：数据包类型 + 负载数据</li>
- *   <li>其他：整个字节数组作为 MESSAGE 类型数据</li>
+ *   <li>其他：整个字节数组作为 MESSAGE 类型的负载</li>
  * </ul>
  *
  * <p>批量解码时使用 V4 协议记录分隔符（0x1E）分割各数据包</p>
@@ -32,17 +32,17 @@ import java.util.List;
 public class EngineIODecoderV4 implements EngineIODecoder {
 
     /**
-     * 解码单个数据包
+     * 解码指定协议版本的单个数据包
      *
-     * <p>支持 String 和 byte[] 两种输入类型，
-     * String 会转换为 UTF-8 字节数组进行处理</p>
+     * <p>支持 String 和 byte[] 两种输入类型，String 会转换为 UTF-8 字节数组进行处理</p>
      *
-     * @param data 原始数据（字符串或字节数组）
+     * @param data            原始数据（字符串或字节数组）
+     * @param protocolVersion 协议版本号
      * @return 解码后的数据包，data 为 null 时返回 null
      * @throws IllegalArgumentException 当输入类型不支持时
      */
     @Override
-    public EngineIOPacket<?> decodePacket(Object data) {
+    public EngineIOPacket<?> decodePacket(Object data, int protocolVersion) {
         if (data == null) return null;
         if (data instanceof String) {
             return decodeString((String) data);
@@ -54,17 +54,18 @@ public class EngineIODecoderV4 implements EngineIODecoder {
     }
 
     /**
-     * 解码多个数据包（Payload）
+     * 解码指定协议版本的批量 Payload
      *
      * <p>先将原始数据转换为字节数组，使用 V4 协议记录分隔符（0x1E）
      * 分割各数据包，然后逐一解码</p>
      *
-     * @param payload 原始数据（字符串或字节数组）
+     * @param payload         原始数据（字符串或字节数组）
+     * @param protocolVersion 协议版本号
      * @return 解码后的数据包列表，空数据返回空列表
      * @throws IllegalArgumentException 当输入类型不支持时
      */
     @Override
-    public List<EngineIOPacket<?>> decodePayload(Object payload) {
+    public List<EngineIOPacket<?>> decodePayload(Object payload, int protocolVersion) {
         byte[] bytesData;
         if (payload instanceof String) {
             bytesData = ((String) payload).getBytes(StandardCharsets.UTF_8);

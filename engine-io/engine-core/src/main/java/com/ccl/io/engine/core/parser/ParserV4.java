@@ -2,16 +2,13 @@ package com.ccl.io.engine.core.parser;
 
 import com.ccl.io.engine.Parser;
 import com.ccl.io.engine.protocol.EngineIOVersion;
-import com.ccl.io.engine.codec.Codec;
 import com.ccl.io.engine.codec.EngineIODecoder;
 import com.ccl.io.engine.codec.EngineIOEncoder;
 import com.ccl.io.engine.core.codec.impl.EngineIODecoderV4;
 import com.ccl.io.engine.core.codec.impl.EngineIOEncoderV4;
-import com.ccl.io.engine.core.codec.impl.JacksonCodec;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,20 +28,6 @@ import java.util.List;
 public class ParserV4 implements Parser {
 
     /**
-     * 单例实例
-     */
-    private static final ParserV4 INSTANCE = new ParserV4();
-
-    /**
-     * 获取单例实例
-     *
-     * @return ParserV4 实例
-     */
-    public static ParserV4 getInstance() {
-        return INSTANCE;
-    }
-
-    /**
      * Engine.IO 解码器
      */
     private final EngineIODecoder decoder;
@@ -56,67 +39,52 @@ public class ParserV4 implements Parser {
 
     /**
      * 默认构造函数
+     *
+     * <p>初始化 V4 版本的编码器和解码器</p>
      */
     public ParserV4() {
         this.encoder = new EngineIOEncoderV4();
         this.decoder = new EngineIODecoderV4();
     }
 
-    /**
-     * 编码单个数据包
-     * <p>根据 supportsBinary 参数决定二进制数据的编码方式：
-     * <ul>
-     *   <li>true：直接输出二进制字节</li>
-     *   <li>false：将二进制数据转为 Base64 编码，前缀为 'b'</li>
-     * </ul>
-     * </p>
-     *
-     * @param packet         待编码的数据包
-     * @param supportBinary 是否支持二进制传输
-     * @return 编码后的字节数组
-     */
-    @Override
-    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary) {
-        return encoder.encodePacket(packet, supportBinary);
-    }
-
-    /**
-     * 编码多个数据包为 payload（用于 HTTP 长轮询）
-     * <p>多个数据包之间使用 V4_RECORD_SEPARATOR（0x1E）分隔</p>
-     *
-     * @param packets        数据包列表
-     * @param supportBinary 是否支持二进制传输
-     * @return 编码后的 ByteBuffer
-     */
-    @Override
-    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary) {
-        return encoder.encodePayload(packets, supportBinary);
-    }
-
-    /**
-     * 解码单个数据包
-     * <p>支持从 String 或 byte[] 输入解码，底层委托给 EngineIOPacket.fromBytes</p>
-     *
-     * @param data 待解码的数据（String 或 byte[]）
-     * @return 解码后的数据包，输入为 null 时返回 null
-     * @throws IllegalArgumentException 数据类型不支持时抛出
-     */
     @Override
     public EngineIOPacket<?> decodePacket(Object data) {
-        return decoder.decodePacket(data);
+        return decodePacket(data, EngineIOVersion.V4.getValue());
     }
 
-    /**
-     * 解码 payload 中的多个数据包
-     * <p>使用 V4_RECORD_SEPARATOR（0x1E）作为分隔符拆分数据</p>
-     *
-     * @param data 待解码的 payload 数据（String 或 byte[]）
-     * @return 解码后的数据包列表
-     * @throws IllegalArgumentException 数据类型不支持时抛出
-     */
     @Override
-    public List<EngineIOPacket<?>> decodePayload(Object data) {
-        return decoder.decodePayload(data);
+    public EngineIOPacket<?> decodePacket(Object data, int protocolVersion) {
+        return decoder.decodePacket(data, protocolVersion);
+    }
+
+    @Override
+    public List<EngineIOPacket<?>> decodePayload(Object payload) {
+        return decodePayload(payload, EngineIOVersion.V4.getValue());
+    }
+
+    @Override
+    public List<EngineIOPacket<?>> decodePayload(Object data, int protocolVersion) {
+        return decoder.decodePayload(data, protocolVersion);
+    }
+
+    @Override
+    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary) {
+        return encodePacket(packet, supportBinary, EngineIOVersion.V4.getValue());
+    }
+
+    @Override
+    public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary, int protocolVersion) {
+        return encoder.encodePacket(packet, supportBinary, protocolVersion);
+    }
+
+    @Override
+    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary) {
+        return encodePayload(packets, supportBinary, EngineIOVersion.V4.getValue());
+    }
+
+    @Override
+    public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary, int protocolVersion) {
+        return encoder.encodePayload(packets, supportBinary, protocolVersion);
     }
 
     /**

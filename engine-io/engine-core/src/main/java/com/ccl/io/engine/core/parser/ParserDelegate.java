@@ -36,10 +36,17 @@ public class ParserDelegate implements Parser {
     private final Map<Integer, Parser> versionedParsers = new ConcurrentHashMap<>();
     private final List<Parser> parsers = new CopyOnWriteArrayList<>();
     /**
-     * 默认版本解析器（V4）
+     * 默认版本解析器
      */
     private final Parser defaultParser;
 
+    /**
+     * 构造函数，指定默认解析器
+     *
+     * <p>加载所有可用的 Parser 实现并注册版本映射</p>
+     *
+     * @param defaultParser 默认使用的解析器
+     */
     public ParserDelegate(Parser defaultParser) {
         this.defaultParser = defaultParser;
         // 加载所有 Parser SPI 实现
@@ -50,12 +57,12 @@ public class ParserDelegate implements Parser {
     }
 
     /**
-     * 构造函数
+     * 默认构造函数
      *
-     * <p>加载所有可用的 Parser 实现并注册版本映射</p>
+     * <p>使用 ParserV4 作为默认解析器</p>
      */
     public ParserDelegate() {
-        this(Parser.NOOP);
+        this(new ParserV4());
     }
 
     /**
@@ -80,18 +87,9 @@ public class ParserDelegate implements Parser {
 
     @Override
     public EngineIOPacket<?> decodePacket(Object data) {
-        throw new UnsupportedOperationException();
+        return defaultParser.decodePacket(data);
     }
 
-    /**
-     * 解码指定协议版本的单个数据包
-     *
-     * <p>根据协议版本查找对应的 Parser 委托解码</p>
-     *
-     * @param data            原始数据（字符串或字节数组）
-     * @param protocolVersion Engine.IO 协议版本号
-     * @return 解码后的数据包
-     */
     @Override
     public EngineIOPacket<?> decodePacket(Object data, int protocolVersion) {
         return getParser(protocolVersion).decodePacket(data);
@@ -99,18 +97,9 @@ public class ParserDelegate implements Parser {
 
     @Override
     public List<EngineIOPacket<?>> decodePayload(Object payload) {
-        throw new UnsupportedOperationException();
+        return defaultParser.decodePayload(payload);
     }
 
-    /**
-     * 解码指定协议版本的批量 Payload
-     *
-     * <p>根据协议版本查找对应的 Parser 委托解码</p>
-     *
-     * @param payload         原始数据（字符串或字节数组）
-     * @param protocolVersion Engine.IO 协议版本号
-     * @return 解码后的数据包列表
-     */
     @Override
     public List<EngineIOPacket<?>> decodePayload(Object payload, int protocolVersion) {
         return getParser(protocolVersion).decodePayload(payload);
@@ -118,19 +107,9 @@ public class ParserDelegate implements Parser {
 
     @Override
     public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary) {
-        throw new UnsupportedOperationException();
+        return defaultParser.encodePacket(packet, supportBinary);
     }
 
-    /**
-     * 编码指定协议版本的单个数据包
-     *
-     * <p>根据协议版本查找对应的 Parser 委托编码</p>
-     *
-     * @param packet          数据包
-     * @param supportBinary   是否支持二进制
-     * @param protocolVersion Engine.IO 协议版本号
-     * @return 编码后的字节数组
-     */
     @Override
     public byte[] encodePacket(EngineIOPacket<?> packet, boolean supportBinary, int protocolVersion) {
         return getParser(protocolVersion).encodePacket(packet, supportBinary);
@@ -138,21 +117,12 @@ public class ParserDelegate implements Parser {
 
     @Override
     public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary) {
-        throw new UnsupportedOperationException();
+        return defaultParser.encodePayload(packets, supportBinary);
     }
 
-    /**
-     * 编码指定协议版本的多个数据包为 Payload
-     *
-     * <p>根据协议版本查找对应的 Parser 委托编码</p>
-     *
-     * @param packets         数据包列表
-     * @param supportBinary   是否支持二进制
-     * @param protocolVersion Engine.IO 协议版本号
-     * @return 编码后的字节缓冲区
-     */
     @Override
     public ByteBuffer encodePayload(List<EngineIOPacket<?>> packets, boolean supportBinary, int protocolVersion) {
         return getParser(protocolVersion).encodePayload(packets, supportBinary);
     }
+
 }
