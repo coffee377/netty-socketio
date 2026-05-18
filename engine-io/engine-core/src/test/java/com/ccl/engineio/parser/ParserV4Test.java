@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("Engine.IO ParserV4 协议解析器测试")
 public class ParserV4Test {
 
-    private static final Parser parser = ParserV4.getInstance();
+    private static final Parser parser = new ParserV4();
 
     @Nested
     @DisplayName("Packet Type Tests")

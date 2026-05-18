@@ -2,6 +2,8 @@ package com.ccl.io.engine;
 
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.Transport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Queue;
@@ -9,6 +11,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EngineIOClient implements EngineClient {
+
+    private final static Logger log = LoggerFactory.getLogger(EngineIOClient.class);
 
     private final int engineIOVersion;
     private final String sessionId;
@@ -72,6 +76,9 @@ public class EngineIOClient implements EngineClient {
 
     @Override
     public void disconnect() {
+        if (log.isTraceEnabled()) {
+            log.trace("disconnect for sid: {}", sessionId);
+        }
     }
 
     public static class Builder {

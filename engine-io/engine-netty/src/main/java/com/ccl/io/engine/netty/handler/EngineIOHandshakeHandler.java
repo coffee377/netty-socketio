@@ -7,7 +7,6 @@ import com.ccl.io.engine.auth.AuthResult;
 import com.ccl.io.engine.auth.Authenticator;
 import com.ccl.io.engine.core.entity.OpenData;
 
-import com.ccl.io.engine.core.store.MemoryEngineClientStore;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import com.ccl.io.engine.protocol.EngineIOVersion;
 import com.ccl.io.engine.protocol.Transport;
@@ -117,6 +116,8 @@ public class EngineIOHandshakeHandler extends SimpleChannelInboundHandler<FullHt
         EngineIOPacket<OpenData> packet = EngineIOPacket.builder()
                 .type(EngineIOPacket.Type.OPEN)
                 .data(openData).build();
+
+
 
         // client.send(packet);
 

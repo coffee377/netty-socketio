@@ -1,8 +1,11 @@
 package com.ccl.io.engine.netty.handler.codec;
 
+import com.ccl.io.engine.EngineClient;
 import com.ccl.io.engine.codec.EngineIOEncoder;
+import com.ccl.io.engine.netty.handler.ChannelAttributes;
 import com.ccl.io.engine.netty.handler.CorsUtil;
 import com.ccl.io.engine.protocol.EngineIOPacket;
+import com.ccl.io.engine.protocol.Transport;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -45,7 +48,9 @@ public class EnginePacketEncoder extends MessageToMessageEncoder<EngineIOPacket<
         EngineIOPacket.Type type = msg.getType();
 
         // TODO: 2026/05/10 19:18 websocket binary
-        byte[] bytes = encoder.encodePacket(msg, false);
+        EngineClient client = ctx.channel().attr(ChannelAttributes.ENGINE_CLIENT).get();
+        boolean binary = Transport.WEBSOCKET.equals(client.getTransport()) && msg.isBinary();
+        byte[] bytes = encoder.encodePacket(msg, binary, client.getEngineIOVersion());
         ByteBuf content = ctx.alloc().buffer().writeBytes(bytes);
 
         if (log.isDebugEnabled()) {

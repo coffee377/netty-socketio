@@ -105,7 +105,6 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 //                0, TimeUnit.SECONDS));
 
         pipeline.addLast(EnginePacketEncoder.class.getName(), new EnginePacketEncoder(parser));
-
         // EngineIO握手处理器（核心）
         pipeline.addLast(EngineIOHandshakeHandler.class.getName(), new EngineIOHandshakeHandler("/socket.io",
                 clientStore, 65536));
@@ -116,6 +115,7 @@ public class SocketIOServerPipelineFactory extends ChannelInitializer<Channel> {
 
         // Engine.IO Polling 处理器（处理 polling 握手、GET/POST）
         pipeline.addLast(PollingTransport.class.getName(), new PollingTransport(clientStore));
+
         pipeline.addLast(EnginePacketDecoder.class.getName(), new EnginePacketDecoder(parser));
 
         pipeline.addLast(SocketPacketEncoder.class.getName(), new SocketPacketEncoder());

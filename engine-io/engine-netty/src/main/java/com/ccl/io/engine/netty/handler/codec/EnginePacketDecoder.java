@@ -4,7 +4,7 @@ import com.ccl.io.engine.EngineClient;
 import com.ccl.io.engine.codec.EngineIODecoder;
 import com.ccl.io.engine.core.codec.impl.EngineIODecoderV4;
 import com.ccl.io.engine.listener.EngineListener;
-import com.ccl.io.engine.message.EngineMessage;
+import com.ccl.io.engine.message.EngineMessagePack;
 import com.ccl.io.engine.protocol.EngineIOPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -20,13 +20,13 @@ import java.util.List;
 /**
  * Engine.IO 入站数据包解码处理器
  *
- * <p>将 {@link EngineMessage} 解码为 {@link EngineIOPacket}，并处理协议级控制消息。
+ * <p>将 {@link EngineMessagePack} 解码为 {@link EngineIOPacket}，并处理协议级控制消息。
  * 此类是 Engine.IO 协议解析流水线中的关键环节，位于传输层与协议层之间。
  * </p>
  *
  * <p><b>职责说明：</b>
  * <ul>
- *   <li>接收来自底层传输的原始 {@link EngineMessage}</li>
+ *   <li>接收来自底层传输的原始 {@link EngineMessagePack}</li>
  *   <li>使用 {@link EngineIODecoder} 将二进制数据解码为 Engine.IOPacket 对象</li>
  *   <li>对 MESSAGE 类型数据包，传递给下游 {@link com.ccl.socketio.netty.handler.codec.SocketPacketDecoder} 处理</li>
  *   <li>对 CLOSE、PING、PONG、UPGRADE、NOOP 等控制消息，直接在内部处理</li>
